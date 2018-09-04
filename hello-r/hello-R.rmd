@@ -1,0 +1,14 @@
+---
+title: "First Notebook"
+output: html_notebook
+---
+```{r}
+mtcars
+```
+```{r}
+summary(mtcars)
+```
+This is a comment in between
+```{r}
+boxplot(mtcars$mpg)
+```
