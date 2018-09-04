@@ -1,0 +1,21 @@
+```{r}
+library(tidyverse)
+```
+
+```{r}
+my_url="https://www.utsc.utoronto.ca/~butler/c32/jumping.txt"
+rats=read_delim(my_url," ")
+```
+```{r}
+rats
+```
+
+```{r}
+rats %>% group_by(group) %>%
+  summarize(m=mean(density))
+```
+
+```{r}
+ggplot(rats, aes(x = group, y = density)) + geom_boxplot()
+```
+
