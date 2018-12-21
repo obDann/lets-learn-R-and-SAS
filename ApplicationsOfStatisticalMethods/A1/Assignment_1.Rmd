@@ -1,0 +1,58 @@
+---
+title: "Assignment 1"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+# Question 4
+## "(a) Read and display the data"
+
+First, intialize tidyverse
+```{r message=FALSE}
+library(tidyverse)  # this ran in another notebook, but this is kept just in case
+```
+
+Then the data is read and viewed
+```{r}
+# we can do this one of two ways, in this case we can just
+# read and display the data from the URL given
+url = "http://www.utsc.utoronto.ca/~butler/c32/airline_passengers.csv"
+passengers = read_csv(url)
+# and we can display these passengers; alternatively we don't need a head function
+head(passengers)
+```
+
+## "(b) the_date column is date middle of the month to which the number of passengers in count applies. This date is in year-month-day format. On plots, dates can be treated as quantitative. Make a suitable plot against the date. Join the points by lines, adding geom_line() to the end of your plotting code."
+
+Since there are two quantitative values (date and count) to graph, it is appropriate to make a scatter plot as we can compare the amount of passengers over time. In addition, we can add a line of best fit to determine what kind of trend occurs over time.
+```{r}
+ggplot(passengers, aes(x = the_date, y = count)) +
+  geom_point() + geom_line() + geom_smooth(method = "lm")
+```
+
+## "(c) Describe briefly any trends you see on your graph."
+
+1. Based off of our line of best fit, we can see that the amount of passengers increases as time moves forward. This may be due to the increase of popularity in air-travel (i.e. through word-of-mouth, advertisements, marketing campaigns etc.).
+
+2. After joining the points, it appears that the data plotted "bounces" similarly to a sinusoidal function. It can be possible that people seasonally fly. However with our graph above, it is unclear to determine if (or even when) a seasonal trend occurs.
+
+## "(d) Make a suitable plot of the number of passengers each month. What do you notice?"
+
+We see that "mm" is a data column composed of strings; hinting that "mm" is a categorial variable. At the same time, we acknowledge that "count" is a quantitative variable.
+
+Thus, we conduct a boxplot graph, comparing each months' lowest value, highest value, and median/quartile values
+
+```{r}
+ggplot(passengers, aes(x = mm, y = count)) + geom_boxplot()
+```
+
+Though the x-axis is sorted by alphabetical order, we can compare each month's frequencies by sequential time.
+
+Based on each months' boxes, it appears that higher frequencies of passengers occur within the summer season (i.e. June/July/August/September) and lower frequencies occur during the winter season (i.e. November/December/January/February). 
+
+Likewise, it appears that passengers moderately travel in transitional periods of extreme seasons like Fall (October) or Spring (March/April/May).
+
+## "(e) How does your plot in part (d) add to your understanding of the plot in part (b)?"
+The plot in part (d) helps us understand why, in part (b), that the graph is plotted similarly to a sinuisodal function. Seasonally, there is a higher frequency of passengers in the Summer season, while there tends to be a low frequency of passengers in the Winter season. Seasons in between appear to be transitional periods between the two.
+
+Thus, it can be conclusive that seasonality greatly affects the amount of passengers travelling by air.

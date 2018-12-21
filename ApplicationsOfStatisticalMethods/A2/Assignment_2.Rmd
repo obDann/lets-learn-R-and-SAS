@@ -1,0 +1,150 @@
+---
+title: "Assignment 2"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r message=FALSE}
+# before we start, let's initialize tidyverse
+library(tidyverse)
+```
+
+# Question 8
+
+## "8 (a) Read the data into R and determine whether you have an appropriate number of observations of an appropriate number of variables"
+
+First, we can just read the csv given to us
+```{r}
+url = "http://www.utsc.utoronto.ca/~butler/c32/car-speeds.csv"
+# then read the csv
+speed = read_csv(url)
+```
+
+We can have a glimpse of it to look at the amount of rows and variables
+```{r}
+glimpse(speed)
+```
+
+As we can see, there are 2 variables, the car number and it's associated speed on the road; it appears our variables are what we wanted as per the context of the question being about the speed limit on a stretch of road.
+
+Likewise, we have an appropriate number of observations; 1000 observations in our manner
+
+## "8 (b) Draw a suitable plot of the speeds"
+
+What we find is that only one of our variables, speed, is quantitative (the car number would be dismissed as a quantitative variable as we know it continually increments by 1). 
+
+So, in this case, we want to make a histogram, but we want to know the appropriate amount of bins. so we use Sturges' rule
+```{r}
+nclass.Sturges(speed$`speed`)
+```
+Thus, it is appropriate to make 11 bins
+
+```{r}
+ggplot(speed, aes(x = speed)) + geom_histogram(bins=11)
+```
+
+## "8 (c) How would you describe the *shape* of the distribution of the distrubution of speeds, based on your graph?"
+
+Given this graph, it appears near-symmetric, but weakly skewed to the right. I say that it is near symmetric because it plateaus from the fifth bin to the seventh bin (which is near the middle).
+
+However, I would say that it weakly skewed to the right, firstly due to the obvious peak to make it unimodal (at the fourth bin), but secondly, it appears that values increase for the first four bins, plateaus from the fifth to seventh and then dramatically drops further on.
+
+## "8 (d) Based on these data, what would be your recommendation for the new speed limit for this section of the road? Show your thought process"
+
+With the graph presented in (b), it may be difficult to picture what should be the absolute speed limit (as the histogram is divided up into bins).
+
+What would be somewhat helpful is to assess the quarter percentile values (in this case the 0.25 quantile, median, and the 0.75 quantile) as well as the typical speed limit at the 85th percentile
+
+```{r}
+speed %>% summarize(Q1 = quantile(speed,0.25),
+                    median = quantile(speed, 0.5),
+                    Q3 = quantile(speed, 0.75),
+                    typical_limit = quantile(speed, 0.85))
+```
+
+This helps much more. If we look at our histogram, we find that a good majority of the cars drive on or beneath 32 mph (hence why the graph appears to be weakly right skewed). 
+
+Likewise, in the original question, the data is conducted when traffic is flowing smoothly on a piece of road. It can be considered that speeds past 32 mph can be quite hazardous, especially when the highest bin of drivers in our histogram appears to be driving much slower in comparison.
+
+Thus, I would recommend that 85th percentile at 30 mph (itself being rounded down from 32 to 30 by a 5 mph interval) would be the new speed limit for this section of the road.
+
+
+
+# Question 9
+
+## "9 (a) Read the data into R and display the first few rows. What is the name of the column containing backpack weight divided by body weight?"
+
+Let's read the given csv file
+```{r}
+# let's adopt the url given, but let's not overwrite the url in q8 (it may be used again)
+q9_url = "http://www.utsc.utoronto.ca/~butler/c32/Backpack.csv"
+# then, we can read the csv
+backpacks = read_csv(q9_url)
+```
+We can just look at the first few rows of the data frame
+```{r}
+head(backpacks)
+```
+And let's just confirm calculations to ensure the column containing backpack weight divided by body weight
+```{r}
+# first row
+9 / 125
+# second row
+8 / 195
+# third row
+10 / 120
+# fourth row
+6 / 155
+# fifth row 
+8 / 180
+```
+Thus, we can confirm that "Ratio" is the the column that contains backpack weight divided by body weight
+
+## "9 b) Make a suitable plot of the backpack weight - body weight ratios"
+
+In this case, we just make a histogram of the ratios; we need not compare the body weight or backpack weight to the ratios as those columns are direct derivations for "Ratios".
+
+Let's use Sturges' rule to determine the appropriate amount of bins
+
+```{r}
+nclass.Sturges(backpacks$`Ratio`)
+```
+Thus, let's make 8 bins for a histogram
+
+```{r}
+ggplot(backpacks, aes(x=Ratio)) + geom_histogram(bins = 8)
+```
+
+It appears that the shape is skewed to the right.
+
+## "9 (c) Is there evidence that the mean backpack-to-body weight ratio for all Cal Poly students (of whom these are a sample) is less than 0.10? Carry out a suitable test at $\alpha = 0.05$ and interpret the results in the context of our data."
+
+Firstly (and formally), let's present our null hypothesis and alternative hypothesis as follows, where $\mu$ is the mean ratio of our data. The null hypothesis is that the mean ratio is equal to 10%, and our alternative hypothesis is that the mean ratio is less than 10%:
+
+$$H_0: \mu  = 0.10$$
+$$H_a: \mu < 0.10 $$
+Then let's conduct a t-test, where the confidence interval is 95% by default
+```{r}
+t.test(backpacks$Ratio, mu=0.10, alternative = "less")
+```
+
+Given our result, where the p-value (presented as 5.358e-09) is less than $\alpha = 0.05$, we reject the null hypothesis. Thus, there is evidence that Cal Poly students have a backpack-to-body-weight ratio less than 10% as we retain the alternative hypothesis.
+
+## "9 (d) Obtain a 90% confidence interval for the mean weight ratio"
+
+What we can do is to conduct a t-test, and specify the confidence level at 90%
+```{r}
+t.test(backpacks$Ratio, conf.leve=0.90)
+```
+From our output, we see that the 90% confidence interval shows that the mean backpack-to-body weight ratio is between 7.104% and 8.320%.  
+
+## "9 (e) Looking at the graph you drew, do you have any concerns about using a t-test here? Explain."
+
+Recalling to what was stated in part (b), it appears that the histogram is right-skewed. 
+
+Comparing to part (c) in this manner, it appears that the highest amount of frequencies occur before the 0.10 ratio; thus, it is believed that we can conduct a t-test with this data when determining if the weight-to-body ratio's true mean is less than 0.10
+
+Likewise, in comparison to part (d), we can confidently say that the highest frequency values occur within the t-test's 90% confidence interval (from 0.07104 to 0.08320) since the highest amounts occur around that range in our histogram.
+
+With the reasons above, I do not have any concerns about using a t-test with the data given in regards to the graph drawn.

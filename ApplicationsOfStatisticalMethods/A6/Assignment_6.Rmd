@@ -1,0 +1,228 @@
+---
+title: "Assignment 6"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+Before we start let's just initialize tidyverse
+
+```{r message=FALSE}
+library(tidyverse)
+```
+
+
+## 13. A fast-food chain that specializes in Mexican food is opening a new franchise in a university town. An important consideration in determining where the franchise will be located is traffic density. Five possible locations are being considered. At each one, the number of cars passing by each location was counted on each of 10 different days. Two of the observations were missing (this will not affect our analysis)
+
+### 13 (a) Read in the data, confirming that you have what the data described
+
+It seems space delimited so
+```{r}
+my_url = "https://www.utsc.utoronto.ca/~butler/c32/texmex.txt"
+density = read_delim(my_url, " ")
+```
+
+We can see that our columns are the 5 possible loctions where
+```{r}
+density
+```
+
+As we wanted, subject to the constraint of this part of the question
+
+### 13 (b) Explain briefly how your data is not tidy (bearing in mind that we'll be doing an analysis of variance later)
+
+Ideally, for an analysis of variance, we would want a data frame where one column is a categorial variable (only containing I, II, III, IV, and V) and the location's magnitude of cars passing.
+
+Thus, the data presented is tidy, but not ideal for our purposes.
+
+### 13 (c) Produce a tidy dataframe that is ready for analysis. Show at least the first few rows of your tidy dataframe
+
+This is fairly easy, we use the gather function. Those NAs are ruining the vibe, so let's remove them
+```{r}
+density_2 = density %>% gather(location, density, I:V, na.rm = TRUE)
+```
+
+and we can view the top and bottom
+
+```{r}
+head(density_2)
+tail(density_2)
+```
+
+And to further convince myself that we have the correct data, let's have a glimpse of it
+```{r}
+glimpse(density_2)
+```
+
+48 rows, as expected.
+
+### 13 (d) Make a suitable plot of your tidy dataframe
+
+I see one categorial variable, and one quantitative variable. Thus, it is suitable to make a boxplot
+
+```{r}
+ggplot(density_2, aes(x=location, y=density)) + geom_boxplot()
+```
+
+
+Quite interesting. Long tails for the lower end of I and III. Long high tails for II and V. I am suspicious about IV; it may be due to the fact that the outlier is pulling the rest of the data up.
+
+### 13 (e) Run an analysis of variance. What do you conclude?
+
+Formally, we want to say that for an ANOVA that our null hypothesis is
+
+$$H_0: \mu_1 = \mu_2 = ... \mu_n $$
+
+and our alternative hypothesis is
+
+$$H_a: \mu_1 \neq \mu_2 \text{ OR } \mu_1 \neq \mu_3 \text{ OR } \mu_2 \neq \mu_3 ... \mu_{n-1} \neq \mu_n  $$
+
+Where $\mu_i$ is the mean of a group i out of n groups (or in this case, the potential location of the restaurant), with an alpha of $\alpha = 0.05$.
+
+Informally, and in the context of the data, the null hypothesis is that the mean density of all locations are the same, and the alternative is that there is at least one location whose mean is different than the rest.
+
+Now we can run our analysis of variance
+
+```{r}
+density.aov = aov(density~location, data = density_2)
+summary(density.aov)
+```
+
+We see that the p-value is at 1.63e-07, which is less than our alpha at $\alpha = 0.05$
+
+Thus, we reject the null hypothesis.
+
+Informally, we can conclude that there is at least one location whose density of traffic is different from the rest of the locations.
+
+We are now interested to see which groups differ.
+
+### 13 (f) Run Tukey's method, if appropriate.
+
+It's appropriate to do so. As stated, the main purpose of running Tukey's method is to find out which locations differ from each other in terms of their mean density. Analysis of Variance has only told us that there are locations differing in terms of their mean density, so let's investigate.
+
+```{r}
+TukeyHSD(density.aov)
+```
+
+
+We focus on the p-adj column and look at the values. The following locations differ since their p-value is less than $\alpha = 0.05$:
+
+* location I and location II
+* location I and location IV
+* location II and location III
+* location III and location IV
+* location IV and location V
+
+### 13 (g) What location(s) would you recommend for the franchise?
+
+One assumption that we may assume is that the franchises are more likely to be more profitable if there is a higher density of cars that go through the location.
+
+If we were to refer to to our boxplot in part (b), there are two viable locations which is IV and II since they appear to be the highest boxes. Likewise, Tukey's method did not say that these two locations differ in terms of their mean density.
+
+IV is one that is a bit odd of me to recommend. The first reason is because there is an outlier there; that outlier may be pushing the mean/box upwards. The second reason is that there are only 8 points as opposed to 10; IV might just be inconsistent.
+
+I personally would investigate further between these two locations, but if I had to pick one, I would pick II because the restaurant would generate consistent profits through its lifespan as opposed to IV (as in the boxplot in II, its upper tail is longer than its lower tail, which allows us to think that our data is skewed to the left, which would generate more profits). 
+
+# Question 14
+
+For the rest of this document, I will be addressing Question 14 as a formal report
+
+
+## Introduction
+
+The Boston Marathon is a unique event where thousands of attendees join together and race using their athletic ability. Itself being one of the longest reoccuring annual events, dating all the way back to the $19^{th}$ century, the intent of this study is to determine whether or not winning times have decreased over the years.
+
+## Methods
+
+For a typical marathon, competitors' sprint times are recorded. For the context of the data that is to be presented, the data is composed of the fastest times (upon completion of the marathon) per year. The fastest times are also known as the win times.
+
+The collection of data that will be analyzed contains the winning times for Males ranging from the years from 1897 to 2018 and Females' winning times ranging from the years 1966 to 2018. It should be noted that the magnitude of the winning times is in the amount hours.
+
+
+
+## Analysis and results
+
+The data of the Boston Marathons was kindly provided by Professor Ken Butler of UTSC. Using R, a few rows of the data of the Boston Marathon is shown below.
+
+```{r}
+# first initialize
+my_url = "https://www.utsc.utoronto.ca/~butler/c32/marathon.csv"
+marathons = read_csv(my_url)
+# then show
+head(marathons)
+```
+
+As presented, the data contains each gender's win time per year. Though not much can be inferred by just viewing raw data, it is of interest to view each gender's win time over the the years. Visualization of such is found below:
+
+```{r}
+ggplot(marathons, aes(x=Year, y=WinTime, colour=Gender)) + geom_point()  + geom_smooth()
+```
+
+As discussed, women's races were not conducted until the 1960s. Historically, after World War II, many political movements were made. One of the more notable ones included women empowerment; prior to then, women were treated severely unfair as opposed to men. The generation of a women's empowerment movement allowed inclusion for women in multiple ways, and judging by our graph, the Boston Marathon eventually granted inclusion for women.
+
+From the graph shown, it appears that the win time for men appears to be decreasing in a linear form, meanwhile, women's win time appears to be decreasing in a hybrid of exponential/quadratic form. Nonetheless, visually, it appears that both groups' win times decrease over the years. 
+
+The function of best fit from the graph above may be difficult to recreate (for each gender), thus it may be of interest to conduct a regression analysis for both genders. A visual representation of the regression can be found as follows:
+
+```{r}
+ggplot(marathons, aes(x=Year, y=WinTime, colour=Gender)) + geom_point()  + geom_smooth(method = "lm")
+```
+
+As expected, women appear to have a steeper slope time as opposed to men, however women's win time does not seem appropriate for a linear model as it seemed more approriate to use an exponential regression model or a quadratic regression model (like the graph above).
+
+It is of interest to seperately get male's linear regression model and female's linear regression model according to the most recent graph above so that there is a statistical inference of the study. To start doing this, it is ideal to separate men and women's data
+
+```{r}
+marathons.male = marathons %>% filter(Gender=="Men")
+marathons.female = marathons %>% filter(Gender=="Women")
+```
+and to quickly glimpse the data (confirming that the data is correctly separated):
+```{r}
+head(marathons.male)
+```
+```{r}
+head(marathons.female)
+```
+
+Now, the regression models can be produced as follows. The first model will be for males
+
+```{r}
+male.reg = lm(WinTime~Year,data=marathons.male)
+summary(male.reg)
+```
+
+In a mathematical sense, where there is an attempt to formulate the general linear formula, $f(x) = mx + b$ where m is the slope of the regression model and b is the y-intercept of the model, the summary above says the males' formal regression model is:
+
+$$f(x)_{men} = -0.0047583x_{men} + 11.6794246$$
+where x is the independent variable indicating the year, and f(x) is the the estimated win time.
+
+The R squared values should be noted. These values are an indicator of how strongly correlated the linear regression model is in comparison to the actual data. The R squared values is approximately at 0.73, indicating that it is moderate-to-strongly correlated. 
+
+Informally, this linear regression model is able to determine a moderate-to-strong approximation as to where the win time for men would be at a specific year, given $x$ as a year.
+
+Women's regression model can be found using R:
+```{r}
+female.reg = lm(WinTime~Year,data=marathons.female)
+summary(female.reg)
+```
+
+where the formal model of the regression is 
+
+$$f(x)_{women} =  -0.014591x_{women} + 31.663478$$
+
+Looking at the R-squared values it is approximately 0.51 (looking at adjusted R-squared). Indicating that the regression model is moderately correlated to the actual data.
+
+
+## Conclusion
+
+One can infer that for men, the negative slope and the moderate-to-strong correlation may conclude that winning times have decreased over the years. This is due to the fact that the linear regression model is $f(x)_{men} = -0.0047583x_{men} + 11.6794246$ and that the R-squared values are approximately 0.73. The decreasing slope is also found in the graph above.
+
+Similarly, the same can be said for women, as its slope is negative, but its correlation is moderate. This is due to the fact that the linear regression model is $f(x)_{women} =  -0.014591x_{women} + 31.663478$ and that the R-squared values are approximately 0.51. The decreasing form is found in the graphs above.
+
+Since it is conclusive that men's winning times are decreasing over the years and that women's winning times are decreasing over the years, then it is conclusive that overall winning times are decreasing over the years as well.
+
+### Next steps
+
+There are other ideas that may stem from this study. One idea is that the regression model does not accurately portray the data in a linear form for the female group, rather, it is appropriate to do an exponential regression or even quadratic regression models. That way, there would be a more accurate approximation when determining the female's group's winning time for any year.
+
+Looking further into the Boston Marathon, the data need not be just limited to the main marathon as they hold events for 5km runs, 10km runs, and many others (which can be found at https://www.baa.org/races). A further compilation of data from these events may assist in further continuing studies.

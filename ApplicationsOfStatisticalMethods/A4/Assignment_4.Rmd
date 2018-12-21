@@ -1,0 +1,129 @@
+---
+title: "Assignment 4"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+
+Let's just initialize smmr and tidyverse before starting
+
+```{r message = FALSE}
+library(tidyverse)
+library(smmr)
+```
+
+# Question 9
+
+## 9 (a) Read and display the data. What do you have?
+
+We can simply use read_csv
+```{r}
+url = "http://www.utsc.utoronto.ca/~butler/c32/nbapoints.csv"
+nba = read_csv(url)
+```
+
+and we can look at our data
+```{r}
+nba
+```
+It appears that we have 25 records of points per game in 1999
+
+## 9 (b) Make a normal quantile plot of the points scored in each game
+
+This seems familiar to question 6. Let's use the following
+
+```{r}
+ggplot(nba, aes(sample=Points))+stat_qq()+stat_qq_line()
+```
+
+## 9 (c) What do you notice about the distribution of the number of points scored? What does that tell you about an appropriate test to do?
+
+We can argue that it appears normal considering that of the range of the x-axis from [-1, 1]; points are closely aligned with the line with little "wiggles". However, we cannot forget the outliers outside of the x-axis range [-1, 1]. 
+
+We find that the data points below 175 on the y-axis are quite spread out, while at the same time points above 223 (an estimate) on the y-axis are spread out too. I do want to point out that the graph appears symmetric (if we were to reflect off of the line). 
+
+As an implication, I can assume the median is equal to the mean and it seems appropriate to do a sign test.
+
+## 9 (d) Do the appropriate test, defending your choice of a one-sided or two-sided test. What do you conclude in the context of the data?
+
+smmr was already initialized. Closely reading the context of the question it is suitable to do a one-tailed test looking at the right end of the tail. We want to test if the new rules promoted an increase in scoring.
+
+Formally, The null hypothesis that we want to propose is $H_0: \mu = 183.2$ and the alternative hypothesis is $H_a: \mu > 183.2$. That is, where $\mu$ is the average points and $\alpha = 0.05$.
+
+So
+```{r}
+sign_test(nba, Points, 183.2)
+```
+
+We look at the upper value line and we see that the p-value is 0.0004552603, which is less than $\alpha = 0.05$. Thus, we reject the null hypothesis and we can conclude that the new rules did promote an increase in scoring.
+
+# Question 10
+
+## 10 (a) Read the data into R and demonstrate that you have two salaries for each of 20 employees
+
+Let's read the data
+```{r}
+url = "https://www.utsc.utoronto.ca/~butler/c32/salaryinc.txt"
+# and assign a variable to the data
+company = read_delim(url, " ")
+```
+
+We can show that we have two salaries and 20 employees such that
+```{r}
+glimpse(company)
+```
+As indicated, there are 20 observations (employees) and three different variables, jan 2016 and jan 2017 appear to be the salaries of a specific employees in those time frames.
+
+## 10 (b) To compare salaries, explain briefly why a matched-pairs test would be better than a two-sample test
+
+This is the case because we're assessing the exact same employee from 2016 to 2017. 
+
+If we conduct a two-sample test, as an example, we would have to design around it by randomly choosing 10 employees in 2016 and 10 employees in 2017.
+
+We can still do a two-sample test, but it would not be as feasible and robust in comparison to a matched-pairs test.
+
+
+## 10 (c) Make a suitable graph to assess the assumptions for a matched-pairs t-test. What does your graph tell you?
+
+What we can do is mutate the data frame by adding a column of difference between the two salaries
+
+```{r}
+company = company %>% mutate(difference=jan2017-jan2016)
+head(company)
+```
+
+That's much better. Now, we can appropriate make a normal quantile plot using the differences of the two years
+
+```{r}
+ggplot(company, aes(sample=difference))+stat_qq()+stat_qq_line()
+```
+
+We find that there is barely any curves/"wiggles" on the range of the x-axis [-0.75, 0.75] from the line.  It's quite bunched up in this range.
+
+As expected, outliers show up at the bottom left or the top right of the plot, quite off of the line. However, I do believe that this is normal since a good majority of the points are near the line (especially when we consider the scale of the y-axis).
+
+Referring to the lecture slides (slides 179 and 180), we find that the shape is quite similar, and it can be expected that if we were to plot our data on the histogram there would be long tails and most likely a sharp peak.
+
+
+## 10 (d) Carry out a suitable matched-pairs t-test on these data. What do you conclude?
+
+Formally, The null hypothesis that we want to propose is $H_0: \mu_2 = \mu_1$ and the alternative hypothesis is $H_a: \mu_2 > \mu_1$. That is, where $\mu_2$ is the average salary of 2017, $\mu_1$ is the average salary of 2016, and $\alpha = 0.05$.
+
+So, using our classic "with" function, we are supposed to use a paired one-sided t-test
+```{r}
+with(company, t.test(jan2017, jan2016, paired = T, alternative = "greater"))
+```
+
+We look at our p-value and we see that it is 2.271e-09, which is significantly less than $\alpha = 0.05$. Thus, we reject the null hypothesis and conclude that the salaries did increase from 2016 to 2017.
+
+## 10 (e) The company would like to estimate how much salaries are increasing, on average. Obtain some output that will enable the company to assess this, and tell the CEO which piece of the output they should look at.
+
+
+In this case, we can assume normality, and we can now assess the salary increase between the two variables To do this, we just use another simple t-test at a 95% confidence interval
+
+```{r}
+with(company, t.test(jan2017, jan2016, paired = T))
+```
+
+Then, we we look at the 95% confidence interval range. It appears that between January 2016 and January 2017, salaries have increased in the range of 4.9 thousand dollars to 7.5 thousand dollars.

@@ -1,0 +1,158 @@
+---
+title: "Assignment 5"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+
+Before we start, let's initialize smmr and tidyverse
+
+```{r message = FALSE}
+library(tidyverse)
+library(smmr)
+```
+
+# Question 6
+
+## (a) Read the data into R and count up how many male and female subjects there are
+
+First let's read our data and look our data
+```{r}
+mms = read_delim("https://www.utsc.utoronto.ca/~butler/c32/mm.txt", " ")
+head(mms)
+```
+
+And now, we can count the number of males and females in our data
+```{r}
+mms %>% count(gender)
+```
+
+There are 10 females and 10 males, as wanted as per our data set.
+
+## (b) Make a suitable plot to display the distributions of M&Ms taken by males and females
+
+Since there is one categorial variable and one numerical value, it is suitable to conduct a boxplot.
+
+```{r}
+ggplot(mms, aes(x = gender, y = candies)) + geom_boxplot()
+```
+
+
+## (c) What does your plot tell you about the typical numbers of candies taken by males and females, and how they compare with each other? Explain
+
+It appears that the box (Q1 to Q3) for females is quite larger in length in comparison to the male's box. Likewise, what we see is that the female's box is asymmetric, as Q1 to the median has a smaller area in comparison to the median to Q3. Whereas the male's box appears symmetric.
+
+What we also see is that the medians appear to be near equal, which is something quite interesting, considering that a majority of the females appear to be within the range higher frequencies in comparison to males.
+
+However, by this graph, it appears that it is difficult to dictate how aware females are (at taking candies) considering the size asymmetry of the box; in comparison to the male's box where the spread appears to be equal, it appears easier to dictate how aware the males are.
+
+Just a big but relevant aside, it appears that there is an outlier in the male boxplot above all other males. That student may have just siezed the moment of how much they could eat.
+
+## (d) Why would a two-sample t-test not be the best for comparing the typical number of candies taken by people of each gender?
+
+The two-sample t-test assumes that the data is normal. Going back to my last comment in (c), there is an outlier for males, which may pull the mean upwards. This disrupts the idea of normality for our data.
+
+Due to non-normal data, it is not ideal to use a two-sample t-test to compare the number of candies taken by each gender. It may be better to run Mood's median test.
+
+## (e) Run Mood's median test on these data.
+
+Formally, we must say that our null hypothesis is that
+$$H_0: \mu_m = \mu_f $$
+and alternative hypothesis is that
+$$H_a: \mu_m \neq \mu_f$$
+
+Where $\mu_m$ is the median for males and $\mu_f$ is the median for females using a 95% confidence interval where $\alpha = 0.05$
+
+Informally, our null hypothesis says that the two medians are the same, and our alternative hypothesis is that the two median's aren't the same
+
+So we run Mood's median test
+
+```{r}
+median_test(mms, candies, gender)
+```
+
+We see that the p-value is 0.3710934, which is larger than $\alpha = 0.05$. Thus, we fail to reject the null hypothesis and conclude that there is no evidence that there is a difference between the two medians of the genders when they are mindlessly taking candies.
+
+# Question 7
+
+## (a) Read and display the data
+
+This can be done as follows:
+```{r}
+cof = read_delim("https://www.utsc.utoronto.ca/~butler/c32/coffee.txt", " ")
+head(cof)
+```
+
+
+## (b) Make a suitable boxplot of the data
+
+This is just second nature:
+```{r}
+ggplot(cof, aes(x = cup, y = tempdiff)) + geom_boxplot()
+```
+
+## (c) Run an analysis of variance. What do you conclude in the context of the data?
+
+Analysis of variance is just the long form for ANOVA. 
+
+Formally we want to say that for an ANOVA that our null hypothesis is
+
+$$H_0: \mu_1 = \mu_2 = ... \mu_n $$
+
+And our alternative hypothesis is
+
+$$H_a: \mu_1 \neq \mu_2 \text{ OR } \mu_1 \neq \mu_3 \text{ OR }  \mu_2 \neq \mu_3 \text{ OR } ... \mu_{n-1} \neq \mu_n $$
+
+where $\mu_i$ is the mean of a group i out of n groups, with an alpha of $\alpha = 0.05$
+
+Informally, the null hypothesis is that all groups have the same mean and that our alternative hypothesis is that there is at least one group mean different from the others.
+
+Thus,
+
+```{r}
+cof.aov = aov(tempdiff~cup, data = cof)
+summary(cof.aov)
+```
+We see that the p-value is at 2.77e-05, which is less than $\alpha = 0.05$. Thus, we reject the null hypothesis and conclude that there is no evidence that all means of each group are the same (as per ANOVA).
+
+## (d) If reasonable, run Tukey's method on these data.
+
+It is reasonable to run Tukey's method on our data because we have confirmed that there is no evidence of all group having the same mean.
+
+Using Tukey's method helps us understand which brands' temperature is different from the others as opposed to ANOVA (where ANOVA only confirms that there are differences between the brands of question).
+
+Since Tukey's method displays p-values, we define our null hypothesis as
+
+$$H_0: \mu_i = \mu_j $$
+and we define our alternative hypothesis as
+
+$$H_a: \mu_i \neq \mu_j $$
+where $\mu_i$ is the mean of group i and $\mu_j$ is the mean of group j (where each group is the cups' branding distinction) with an alpha of $\alpha = 0.05$
+
+```{r}
+TukeyHSD(cof.aov)
+```
+
+We focus on the "p adj" column as they evaluate the combination of means of two groups. 
+
+In this case, we look at the p-values of Nissan and CUPPS, SIGG and Nissan, Starbucks and Nissan, and Starbucks and SIGG. We find that these combinations have a p-value less than $\alpha = 0.05$, and we can conclude that these combinations of cups have no evidence that their temperature is the same.
+
+
+## (e) Are any of the mug brands significantly different from all of the other mugs? Which ones?
+
+Going back to our answer from (d), we see that Nissan is the mug brand that is significantly different from all of the other mugs as its name appears for nearly every single combination of mugs that has no evidence that their mean mug temperature is equivalent to another brand's mean mug temperature.
+
+We can also be really basic and just view the means ourselves:
+```{r}
+cof %>% group_by(cup) %>%  summarize(mean=mean(tempdiff))
+```
+
+As we can see, Nissan is significantly less than all other mug brands, as expected.
+
+## (f) The person who originally analyzed these data said "I am somewhat cautious about these conclusions". Why do you think she said that? explain briefly.
+
+
+What is assumed is that the person who originally analyzed the data assumed normality; the Central Limit Theorem does not suffice as there is a small sample size (8 of each group). In reference to our boxplots, we also have to note that the spreads are not equivalent.
+
+For the reasons above, the person who originally analyzed this data is right to be skeptical.

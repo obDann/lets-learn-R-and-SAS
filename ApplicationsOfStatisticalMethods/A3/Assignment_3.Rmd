@@ -1,0 +1,131 @@
+---
+title: "Assignment 3"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+Let's just initialize tidyverse before jumping into the assignment
+```{r message = FALSE}
+library(tidyverse)
+```
+
+# Question 6
+
+## 6 (a) Read the data into R, and display the first few lines.
+
+```{r}
+# save the URL
+url = "http://www.utsc.utoronto.ca/~butler/c32/thirty.csv"
+# set a variable to the data
+time = read_csv(url)
+# and let's display the first few rows of our data
+time
+```
+
+There are two columns, one column containing the recorded time a person predicted 30 seconds and the other containing the gender, as expected.
+
+## (b) Draw a suitable picture that will enable you to compare the centre and spread of the times for males and females
+
+There is one categorial variable and one quantitative variable, so it seems appropriate to produce a side-by-side boxplot to view the centre and spread of times between males and females
+
+```{r}
+ggplot(time, aes(x=gender, y=time))+geom_boxplot()
+```
+
+
+
+## 6 (c) Compare the centres and spreads of guessed times for males and females, using your plot. What do you see?
+
+As we can see, males have a larger spread in comparison to females, however the male quartile values are smaller in comparison to females. It appears that males have a longer tail past the 75th percentile in comparison to females. 
+
+It also appears that males have a thicker box in comparison to females, leading to believe that the male standard deviation is different from the female standard deviation.
+
+Precisely, we can view the spread as follows (assessing the standard deviation and variance)
+```{r}
+time %>% group_by(gender) %>% summarize(standard_deviation=sd(time),
+                                        variance = var(time))
+```
+
+In this case, the spread seems far when comparing males and females, and it does not seem equal.
+
+## 6 (d) Carry out an appropriate test to see whether the mean guessed times for males and females are different, given what you observed about spread in the previous part.
+
+
+In this case, it is appropriate to conduct a two-sample t-test, specifically a Welch t-test since the spreads do not seem equal.
+
+Formally, let $\mu_m$ denote the mean of males, and $\mu_f$ denote the mean of females. Let our null hypothesis be that the mean of males is equal to the mean of females, and let our alternative hypothesis is that the mean of males is not equal to the mean of females, where we set $\alpha = 0.05$. In other words:
+
+$$H_0: \mu_m = \mu_f$$
+$$H_a: \mu_m \neq \mu_f $$
+
+```{r}
+t.test(time~gender, data=time)
+```
+
+Since the p value is vastly large, at 0.6537, we fail to reject the null hypothesis. So, there is no evidence of any difference between the prediction times mean of males in comparison to prediction times of the mean of females.
+
+## 6 (e) Somebody claims that females are more accurate at guessing when 30 seconds are up than males are. Explain briefly why the data as they currently stand do not help you address this question, and describe how you might reorganize things to assess this claim
+
+In regards to questions 6(b) and 6(c), for instance, we have stated that the spread between males and females is quite different, as seen when comparing variances and standard deviations. While at the same time, we have seen that the females' box (in the boxplot) is closer and compressed to 30 in comparison to males.
+
+However, in regards to question 6(d), our two-sample t-test states that we do not have enough evidence that males and females differ in terms of prediction-time; this contradicts the initial claim that somebody presented. As an implication it can still be possible that males and females have the same accuracy of guessing when 30 seconds are up.
+
+In this case, we can assess the power of our t-test in part (d) to determine if the t-test is inaccurate to assess this claim.
+
+# Question 7
+
+## 7 (a) Suppose the researcher samples 6 leaves. If the mean selenium content is in fact now 0.075 parts per million, calculate the probability that the researcher will correctly be able to reject a mean of 0.080 parts per million
+
+In this case, we are attempting to calculate power. So we use power.t.test where in the parameters
+\begin{itemize}
+  \item our sample size $n$ is 6
+  \item delta is $|true \text{ } mean - null \text{ } mean|$
+  \item the standard deviation is believed to be 0.005 (stated in the question)
+  \item the type noted as "one sample"
+\end{itemize}
+
+```{r}
+power.t.test(n = 6, delta = 0.080 - 0.075, sd = 0.005, type = "one.sample")
+```
+
+As we can see, our power is 0.5068167. This is the probability that the researcher will correctly reject a mean of 0.080 parts per million.
+
+
+## 7 (b) How many leaves should the researcher sample to bring this power up to 0.90?
+
+In this case, we can re-use the power.t.test, but specify power to get the appropriate sample size
+
+```{r}
+power.t.test(delta = 0.080 - 0.075, power = 0.9, sd = 0.005, type="one.sample",alternative="two.sided")
+```
+
+In this case, we round up the n value, and we state that the researcher should sample 13 leaves to bring the power up to 0.90.
+
+## 7 (c) Repeat part (a), but this time estimating the power using simulation. Is your answer exactly the same as what you got in (a)? Close to it?
+
+Let's recall the "simulation recipe" that was stated earlier in the assignment:
+
+
+  * use rerun to generate random samples from normal distributions with n = 6, the true mean being 0.080, and p = |0.075 - 0.08|, repeated "many" times (we will use 1000)
+  * use map to run t.test on each of those random samples
+  * use map_dbl to extract the P-value for each test and save the results
+  * ... count how many of those P-values are 0.05 or less
+
+
+```{r}
+rerun(1000, rnorm(6, 0.08, 0.080 - 0.075)) %>% 
+map(~t.test(.,mu=0.075)) %>% 
+map_dbl("p.value") -> pvalues
+tibble(pvalues) %>% count(pvalues <= 0.05)
+```
+
+Let's just do a "rigorous" calculation
+```{r}
+499/1000
+```
+
+It appears that the power is less in simulation (0.499) in comparison to using $power.t.test$ at approximately 0.507. However, after conducting the simulation, the powers are quite consistent as there isn't a large gap between the two.
+
+Thus, it is believed that the researcher will correctly reject a mean of 0.080 parts per million at a power of approximately 50%
+
