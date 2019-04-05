@@ -1,0 +1,292 @@
+---
+title: "Assignment 5"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r message = FALSE}
+library(MASS)
+library(car)
+library(tidyverse)
+```
+
+
+# Question 2
+
+## (a) Read in the data set and display some of it
+
+It appears that the columns are aligned, so we read it as a table
+
+```{r}
+url = "https://www.utsc.utoronto.ca/~butler/d29/rehab.txt"
+rehab = read_table(url)
+```
+
+and let's display our data to identify that it is correct. It may be a good idea to turn fitness into a factor for our liking
+
+```{r}
+rehab %>% mutate(fitness=fct_inorder(fitness)) -> rehab
+head(rehab)
+```
+
+## (b) Make a suitable plot that displays the relationship between age and rehab days, accounting for each subject's levels of fitness. Add regression lines for each fitness level to your plot
+
+The regression part is a big hint that this should be a scatterplot. Since days is the response variable, age will be in the x axis
+
+```{r}
+ggplot(rehab, aes(x = age, y = days, colour = fitness)) +
+  geom_point()+ geom_smooth(method = "lm", se=F)
+```
+
+## (c) Describe what your plot suggests about effects of age, fitness level, and interaction.
+
+From what I am currently seeing, the lines between fitness levels look approximately parallel. That would imply that interaction between fitness level and age is insignificant. That is, the number of days that a male recovers from knee surgery does not differently recover based on both fitness and age, rather, it is independent.
+
+Furthermore, for age, every fitness level appears to have a positive slope. That is, the higher the age, the higher amount of days it will take to recover (this does make sense as bone structure deteriorates over time).
+
+As for the fitness levels themselves, it appears that the lower the fitness level is, the higher amount of days it takes to recover. This also makes sense as athletes tend to take more care of their body.
+
+## (d) Fit an analysis of covariance model predicting rehab days from the other variables, including an interaction. Display the output from drop 1, and explain what you can conclude from it
+
+We can do this with a simple `lm`
+
+```{r}
+rehab.1 = lm(days~age*fitness, data = rehab)
+drop1(rehab.1, test = "F")
+```
+
+We see that the p-value between the interaction is incredibly high at 0.7191. This implies that the interaction between age and fitness is not significant when predicting the number of days, the same conclusion that I originally had in (c).
+
+## (e) Explain briefly whether or not we can remove the interaction. If appropriate, fit a model without it, and test age and fitness for significance.
+
+As stated in (d), due to the large p-value, the interaction between age and fitness levels is insignificant. Thus, it is appropriate to remove the interaction. We can remove the interaction using `update`
+
+```{r}
+rehab.2 = update(rehab.1, .~.-age:fitness)
+```
+
+Furthermore, we test age and fitness using `drop1` again
+
+```{r}
+drop1(rehab.2, test = "F")
+```
+
+The p-values for both variables (age and fitness levels) are small, at 2.2.e-16. Thus, we can conclude that both age and fitness levels are significant to predict the number of days after knee surgery.
+
+## (f) Look at the `summary` of your preferred model, and explain briefly how the conclusions from there are consistent with your graph.
+
+So we run `summary` with our new model (the one without the interaction):
+
+```{r}
+summary(rehab.2)
+```
+
+What we found is that age has a positive slope, which implies that the higher the age, the higher the amount of days a subject is in after knee surgery. This conclusion is consistent with what I had in (c).
+
+One thing to note is that the `low` fitness level is not shown as it is in the baseline. 
+
+Thus, what is found is that the higher fitness level, the lower amount of days the patient stays in therapy. This conclusion is also consistent with what I had in (c).
+
+That is, according to the output, `low` has estimated coefficient at 0, `medium` would have an estimated coefficient at -1.85 (which would imply people at a medium fitness level stays in therapy less than people with a low fitness level), and `high` has an estimated coefficeint at -8.72 (which would imply people with a high fitness level stays in therapy less than people with a medium fitness level). 
+
+
+# Question 4
+
+## (a) Read in and display some of the data. What variables do you have?
+
+Given that we have a csv:
+
+```{r}
+url = "https://www.utsc.utoronto.ca/~butler/d29/kite.csv"
+kite = read_csv(url)
+```
+
+and let's look at some of the data
+
+```{r}
+head(kite)
+```
+
+The column names are as follows:
+
+```{r}
+colnames(kite)
+```
+
+where `tail_length` is the length of the kite's tail, `wing_length` is the length of the kite's wing, and `sex` is the kite's sex; the variables is as expected given the context of the question.
+
+## (b) Explain briefly why MANOVA would be a sensible method of analysis to tackle the question of interest.
+
+This is because we have two response variables (`tail_length` and `wing_length`) that is dependent on one categorical explanatory variable (`sex`).
+
+With a good majority of what we have learned in the course up until this pont, we have dealt with only one response variable. Conducting a MANOVA succeeds in our analysis when we are trying to differentiate between two sexes of kites using `wing_length` and `tail_length`, unlike other methods where we could only use `wing_length` or only use `tail_length`.
+
+## (c) Make a suitable graph that shows all three variables
+
+Given that there is only two quantitative response variables, it seems best to use a scatterplot, however, I would like to see if there is any differentiation between the two sexes with a basic regression line:
+
+```{r}
+ggplot(kite, aes(x = tail_length, y = wing_length, colour = sex)) + geom_point() +
+  geom_smooth(method="lm", se=F)
+# (Note to self: if there are more than two, it is best to use a facetted histogram)
+```
+
+## (d) Describe briefly what you see in your plot. (I have three things in mind, and am asking you to find two of them)
+
+So I purposely put the regression lines there for a reason.
+
+Analogous (but opposite) to something like interactions, we see that the two regression lines are parallel. What that tells me is that there is a differentiation between males and females. That is, if we were to say that there isn't differentation between the two, the regression lines should have conincide with each other at one point as there would be a "grey-area" range to determine whether the kite is male or female. But there isn't any intersections between the two as it is parallel.
+
+What we also find is that males typically have larger `wing length` in comparison to females (as if we were to have the female regression line pushed upward on the y-axis), but it is difficult to say whether the females differentiate themselves to males when considering `tail length` (since it appears that there have not been any horizontal translations).
+
+One last obvious point I would like to make is that the regression lines are at a positive slope. That is, neither gender disobeys the rule of "the higher the tail length, the higher the wing length".
+
+
+## (e) Create a response variable for a suitable MANOVA, and display its first few lines using `head`. Explain briefly why we need to use `head` here.
+
+In this case, we just need `wing_length` and `tail_length`:
+
+```{r}
+response = with(kite, cbind(wing_length, tail_length))  # this is a matrix!
+head(response)
+```
+
+and let's confirm as follows:
+
+```{r}
+head(kite$wing_length)
+head(kite$tail_length)
+```
+
+Seems about right to me.
+
+We needed to use `head` because our response variable is a matrix:
+
+```{r}
+class(response)
+```
+
+Matrices are dated in R, and calling only `response` displays the whole dataset of `tail_length` and `wing_length`. It is unnecessary to show all of the data as we ideally would like to confirm what we have is what we expected, hence we use `head` instead.
+
+## (f) Run a suitable MANOVA to compare wing length and tail length for males and females
+
+I'll play it safe and not use `Manova`:
+
+```{r}
+kite.1 = manova(response~sex, data = kite)
+```
+
+and we display our results as follows:
+
+```{r}
+summary(kite.1)
+```
+
+
+## (g) What do you conclude from your MANOVA? Explain briefly.
+
+Since the p-value of sex is small (at 1.464e-05), we can conclude that sex is significant variable when determining a kite's wing/tail length. That is to say, if we were say a kite is male, then we are capable of identifying its tail length to wing length range.
+
+# Question 6
+
+## (a) Read in and display (some of) the data. Convince yourself that you have something that identifies the subjects, which margarine each subject was assigned, and measurements of cholesterol at three time points.
+
+The link is a csv so
+
+```{r}
+url = "https://www.utsc.utoronto.ca/~butler/d29/cholesterol.csv"
+chol = read_csv(url)
+```
+
+and let's display some of the data using glimpse
+```{r}
+glimpse(chol)
+```
+
+Let's attempt to convince ourselves; there are 18 observations, as wanted. Cholesterol data was collected before the study, at week 4 and at week 8; these are in the context of variables, good.
+
+Lastly, there are three types of margarine identified (A, B and C), we can confirm this:
+
+```{r}
+unique(chol$margarine)
+```
+
+## (b) Run a suitable repeated-measures ANOVA on these data. There are some things you need to set up
+
+We do it as follows
+
+* "Create a response matrix out of the appropriate columns of your data frame"
+
+```{r}
+chol %>% select(before:week8) %>% as.matrix() -> response
+head(response)
+```
+
+* "fit a linear model lm predicting your response from your between-subject factor(s)"
+
+```{r}
+chol.1=lm(response~factor(margarine), data=chol)
+```
+
+* "get a hold of a list of the different time points"
+
+```{r}
+times = colnames(response)
+```
+
+* "make a `data.frame` of this"
+
+```{r}
+times.df = data.frame(times)
+```
+
+* "run `Manova` suitably, displaying the result"
+
+```{r}
+chol.2 = Manova(chol.1, idata=times.df, idesign=~times)
+chol.2
+```
+
+## (c) What do you conclude from your repeated-measures ANOVA?
+
+The "interaction variable" is `factor(margarine):times`. We see that there is a rather large p-value for the interaction at 0.9259. Thus, we deem the interaction as insignificant to the effect of cholesterol.  Due to the insignificance of the interaction, we are inclined to talk about the main effects as well. 
+
+What we find is that the type of margarine is insignificant due to the large p-value at 0.5666. We also find that the timeframe is significant on the effect on cholesterol due to the low p-value at 4.879e-9.
+
+That is to say, as long as a person consumes some type of margarine instead of butter, any person's cholesterol levels may be affected over time.
+
+## (d) We are going to make a spaghetti plot to understand the significance and non-significance of the tests in the repeated-measures ANOVA. For that, we need the data in "long format" with one column. Create this long format data frame
+
+This is a job for `gather`.
+
+```{r}
+chol.long = chol %>% gather(time, chol_level, before:week8)
+```
+
+and let's just take a glimpse at it to know the number of "observations"
+
+```{r}
+glimpse(chol.long)
+```
+
+3 time measurements * 18 subjects = 54. Correct
+
+## (e) Use your long data frame to make a spaghetti plot with one spaghetti strand per subject coloured by which margarine they were assigned to
+
+Running through PASIAS, we draw up something similar:
+
+```{r}
+ggplot(chol.long, aes(x=time, y=chol_level, colour=margarine, group=ID))+
+geom_point()+geom_line()
+```
+
+## (f) Explain briefly what you conclude from your spaghetti plot and how it matches up with what you found from your repeated measures ANOVA
+
+A strategy for interpretting a spaghetti plot (one that doesn't have that many points, like this one) is to identify patterns for each type of margarine over time.
+
+Suppose that I focus on Margarine A. For all strands, I see a deep decrease from time `before` to time `week4` and I see a small (or non existant) decrease from time `week4` to time `week8`. I also see this for all Margarine C strands and half of Margarine B strands.
+
+Thus, the spaghetti plot tells us that the type of margarine that the person consumes does not matter; as long as the person consumes some type of margarine instead of butter, their cholesterol levels go down over time. 
+
+This is consistent with our repeated measures ANOVA because we originally said in (c) that the interaction between time and margarine is insignificant, and that even margarine iself is insignificant as well. However, we did say that time was significant in (c), and our spaghetti plot does confirm that conclusion.

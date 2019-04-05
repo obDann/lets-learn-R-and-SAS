@@ -1,0 +1,216 @@
+---
+title: "Assignment 4"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r message = FALSE}
+library(tidyverse)
+```
+
+# Question 2
+
+## (a) Read in and display (some of) the data
+
+Since the file is a csv, we use a `read_csv`:
+
+```{r}
+url = "https://www.utsc.utoronto.ca/~butler/d29/kidney.csv"
+kidney = read_csv(url)
+```
+
+and we display some of the dataframe
+
+```{r}
+head(kidney)
+```
+
+it appears we got what was expected.
+
+## (b) Draw a grouped boxplot that shows the number of days in the hospital, called `hospital_days`, depends on the duration of treatment and weight gain.
+
+In this case, our x-axis for the explanatory variable will be the duration of treatment, and we will treat weight gain as a colour/group
+
+```{r}
+ggplot(kidney, aes(x=duration, y = hospital_days, fill= weight_gain)) + geom_boxplot()
+```
+
+## (c) Why does your plot suggest that a transformation of `hospital_days` would be a good idea? Explain briefly
+
+That is because the spreads are really unequal from each other (e.g. compare long duration with mild weight gain to short duration with mild weight gain), which is a sign of skewness. We also see outliers in our graph as well (e.g. short duration at moderate weight gain). 
+Since our further analysis consists of dealing with means (and not medians), it would be in our best interest to transform the data "normally".
+
+## (d) The original researchers decided to make a log trasnformation of `hospital days` plus one (because some of the values of `hospital_days` were zero). This is in the column called `log_days` in the data frame. Find the mean `log_days` for each duration and weight gain, and use the resulting data frame to make an interaction plot.
+
+First, we want to factorize `duration` and `weight_gain`
+
+```{r}
+kidney.2 = mutate(kidney, duration=factor(duration), weight_gain=factor(weight_gain))
+```
+
+Following PASIAS, we do something similar using `group_by` and `summarize` (we can't do this immediately, let's fix the order of it).
+
+```{r}
+kidney %>% 
+group_by(duration = fct_inorder(duration), weight_gain = fct_inorder(weight_gain)) %>%
+summarize(m=mean(log_days)) -> d
+# reduced a line, but the second line is hard to read through
+d
+```
+
+Then, we can finally drawn an interaction plot
+
+```{r}
+ggplot(d, aes(x = duration, y = m, colour = weight_gain, group = weight_gain)) +
+  geom_point(data = kidney.2, aes(y=log_days)) + 
+  geom_line()
+# putting the actual data points, as this was suggested in lecture
+```
+
+## (e) What do you conclude from your interaction plot? Explain briefly
+
+`moderate` and `severe` appear to be parallel, while mild seems to be much more elastic (flatter) than the other two. That is, `moderate` and `severe` will not have an interaction. However, with `mild`, we can expect an interation with `moderate` and/or `severe`, and it would produce a significant effect for `log_days`.
+
+## (f) Run an ANOVA predicting the transformed number of days in the hospital from the weight gain and duration. Include an interaction. From the results, what is the most important conclusion?
+
+I found out that the '`*`' in ANOVA (where we have A*B) means "include A, B, and A+B (interaction)". So let's do that:
+
+```{r}
+kidney.3 = aov(log_days~duration*weight_gain, data=kidney.2)
+summary(kidney.3)
+```
+
+We look at the p-values at all variables (individually and with interaction). An important conclusion is that the interaction between the two variables `duration:weight_gain` appear to have a large p-value at 0.62. That is, an interaction between `duration` and `weight_gain` is insignificant to the effect of `log_days`
+
+## (g) Do you keep the interaction term? If you do, explain briefly why; if not, remove it and display the results for your new model. What do you conclude now, at $\alpha = 0.10$?
+
+As per my answer in my last question, we say that the interaction between the two is insignificant due to the large p-value at 0.62. As an implication, we remove the interaction.
+
+As instructed, we use `update` to remove the interaction
+
+```{r}
+kidney.4 = update(kidney.3,.~.-duration:weight_gain)
+summary(kidney.4)
+```
+
+We see that both `duration`'s and `weight_gain`'s p-values are less than $\alpha=0.10$. That is, both variables have differing means in themselves and are considered significant to the effect of `log_days`.
+
+## (h) Run a suitable Tukey Analysis. What can you say about the combination of weight gain and duration that is associated with the *smallest* mean number of days in the hospital? Explain briefly. (Use $\alpha = 0.1$ again).
+
+That *smallest* part seems like a huge hint. So we filter only days that have 'short' in them. This is regarded as a simple analysis
+
+```{r}
+kidney.2 %>% filter(duration=="short") %>%  # note to self: can work with just kidney
+  aov(log_days~weight_gain, data=.) -> simple_short  # note to self: no need to do fct_inorder
+summary(simple_short)
+```
+
+We find that there is a small p-value (at 0.000581), and conclude that there is an effect of filter type for short durations.
+
+We conclude that there may be differing means from each category. Thus, it is suitable to conduct a Tukey analysis to see what durations means differ from each other
+
+```{r}
+TukeyHSD(simple_short)
+```
+
+Since we have $\alpha = 0.10$, we find that all combinations' p-value is less than $\alpha$. That is, there is no combination of the weight gain that differs when the duration of stay is short. This is odd, since it contradicts our analysis of variance (may have been a different story if $\alpha = 0.05$).
+
+# Question 4
+
+## (a) Explain briefly why contrasts would be a useful technique here.
+
+As opposed to a Tukey Analysis, we're not interested in comparing all means of different stations to each other. However, we are interested in comparing the means of specific combinations, and our hypotheseses require us to compare two categories to one (i.e. the second hypothesis of station A and B vs C); a Tukey analysis fails to simply conduct this, but contrasts succeeds in this situation.
+
+
+## (b) Read in the data and explain briefly why you have a sensible number of observations.
+
+The file is a csv so:
+```{r}
+url = "https://www.utsc.utoronto.ca/~butler/d29/nuclear.csv"
+nuclear = read_csv(url)
+# glimpse may be best with this question
+glimpse(nuclear)
+```
+There are 18 observations.
+
+This is a sensible number of observations since there are 3 plants observed over 6 months:
+
+3 plants $\cdot$ 6 months = 18 observations
+
+## (c) Make a suitable plot of the blades of grass and the stations. What do you observe (two things), bearing in mind the aims of the study?
+
+Since we're asked to plot something categorical and something quantitative, this calls for a boxplot
+
+```{r}
+ggplot(nuclear, aes(x = station, y = grass)) + geom_boxplot()
+```
+
+The first thing that is noticeable is that station C differs from station A and B; this is not really a surprise since A and B are close to the bay and station C is located further out. C has a higher grass count in comparison to the two.
+
+Another thing to mention is that station A and B are relatively similar in means; again, not really a surprise because they are geographically close to each other. 
+
+However, what I find a bit odd is the spreads; A appears to have an equal spread, whereas B has a longer upper tail, and shorter Q3 to median range (comparatively to median to Q1). Likewise, I have to mention there are only 6 observations from each station, so it is difficult to say that B vastly differs from A.
+
+## (d) In your data frame, turn `station` into a `factor`. Save your new column in your original data frame.
+
+Seems easy:
+```{r}
+nuclear = nuclear %>% mutate(station=factor(station))
+nuclear
+```
+
+since factoring levels it to be alphabetical, we don't need to check for levels.
+
+## (e) Create two vectors with suitable names that reflect the desired contrasts that match with the study objectives
+
+The first hypothesis is to determine whether A and B are similar or different; ordering is in (A, B, C):
+
+```{r}
+c.ab = c(1, -1, 0)
+```
+
+The second hypothesis is to determine whether C has more blades than stations A and B. We prioritize C to be positive since it is a "greater than" hypothesis:
+
+```{r}
+c.cab = c(-1/2, -1/2, 1)
+```
+
+## (f) Demonstrate that your two contrasts are orthogonal
+
+Two contrasting vectors are orthogonal if the sum of the product of the two vectors is zero
+
+```{r}
+sum(c.ab*c.cab)
+```
+
+And it is, as expected.
+
+## (g) Turn these into contrasts for the column station in your data frame (two steps).
+
+We need to make a matrix:
+
+```{r}
+m=cbind(c.ab, c.cab)
+```
+
+Then we have to feed it into the contrasts function:
+
+```{r}
+contrasts(nuclear$station)=m
+```
+
+## (h) Fit the analysis of variance using `lm` and display the summary of the result
+
+Seems simple enough:
+
+```{r}
+nuclear.1=lm(grass~station,data=nuclear)
+summary(nuclear.1)
+```
+
+## (i) What do we conclude from the analysis, bearing in mind the aims of the study?
+
+Since `stationc.ab` has a p-value of 0.7687, the contrast that A is different than B is insignificant. That is, station A and station B do not differ from each other, and are similar in terms of the number of blades of grass.
+
+since `stationc.cab` has a p-value of 0.0014, the contrast that C has more blades that A and B is significant. That is, station C will always have more blades of grass in comparison to station A and station B.

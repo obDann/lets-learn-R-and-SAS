@@ -1,0 +1,192 @@
+---
+title: "Assignment 1"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r message=FALSE}
+library(tidyverse)
+```
+
+
+# Question 2
+
+
+## 2 (a) Read in the data and display (the first ten lines of) what you have
+
+The test scores and GPA appear to be aligned in the centre, so it is suitable to use read_table
+```{r}
+url = "http://www.utsc.utoronto.ca/~butler/d29/grade-point-average.txt"
+grades = read_table(url)
+```
+and we can show the first 10 lines
+```{r}
+head(grades, 10)
+```
+
+## 2 (b) Draw a suitable plot of the data. Describe briefly what you see.
+
+Given that there are two quantitative variables, it is suitable to draw a scatterplot of the data
+
+```{r}
+# we want to say that testscores are the explanatory variable
+# and we want to say that the GPA is the response variable
+ggplot(grades, aes(x=testscore, y=gpa))+geom_point()+geom_smooth()
+```
+
+It appears that there is a weak upward trend, and the line from `geom_smooth()` somewhat confirms that. That is, the higher the test score is, there is a likeliness that the student will have a higher GPA. There are also certain (linear) patterns that can be seen (for instance, the person with the highest test score to the person that scored 25 with a gpa just less than 2 seems linear). 
+
+## 2 (c) Fit a regression predicting first-year GPA from the test score, and display the results
+
+We use the classic `lm`
+```{r}
+grades.1 = lm(gpa~testscore, data=grades)
+summary(grades.1)
+```
+
+## 2 (d) Is there a significant relationship between test score and first-year GPA? Does that suprise you, given what you saw in your graph?
+
+As the P-value for testscore in our summary is 0.00292, which is less than $\alpha = 0.05$, we can say that the relationship between testscore and gpa is significant. Likewise, we can see that the testscore has a positive slope at 0.03883.
+
+This is not surprising since our graph did indicate that there is a positive trend between the two variables (especially after confirming the relationship between the two with `geom_smooth()`). Thus, we can conclude that testscore has an effect on gpa.
+
+## 2 (e) Obtain confidence intervals of the mean first-year GPA for students who have test scores 20 and 25.
+
+```{r}
+# first define a column, containing 20 and 25
+test_int = c(20, 25)
+# then make a tibble to outline the exact string of the variable
+new=tibble(testscore=test_int)
+new
+```
+We can now feed it into predict
+```{r}
+preds = predict(grades.1, new, interval="c")  # labelling it with "c" for "confidence"
+cbind(new, preds)
+```
+
+As we can see, for a test score of 20, the predicted confidence interval is within the range of 2.72 to 3.05.
+
+Likewise, for a test score of 25, the predicted confidence interval is within the range of 2.97 to 3.20
+
+## 2 (f) Which of your two confidence intervals is longer? Explain briefly why that is not surprising
+
+First, we must do some intermediate calculations.
+
+In regards to the confidence interval of 20, the distance is
+```{r}
+3.054825-2.72359
+```
+0.33. And in regards to the confidence interval of 25, the distance is
+
+```{r}
+3.197586-2.971869
+```
+0.23.
+
+Thus, we conclude that the confidence interval of 20 is longer. This is not surprising. 
+
+To preface this, we must go with the assumption that test scores has an effect on GPA; that is, the higher the test score, there is a likeliness that the student will have a higher GPA. Given this assumption, students are less volatile to achieving a low GPA if their test score is good, and the graph from (b) exhibits this.
+
+Therefore, since a test score of 25 is higher than 20, it is not surprising that a test score of 20 has a longer confidence interval.
+
+# Question 4
+
+## 4 (a) Read in and display (at least some of) the data.
+
+Since the data supplied is in a csv format, we have to use `read_csv`
+
+```{r}
+url = "http://www.utsc.utoronto.ca/~butler/d29/chdage.csv"
+heart = read_csv(url)
+```
+
+and we display a few lines of the file to ensure what we have is expected
+```{r}
+head(heart)
+```
+
+As stated in the assignment, and what is expected, there is an id, age, age group, and whether a person has experienced significant evidence of coronary heart disease (chd for short).
+
+## 4 (b) Run this code. What does your graph tell you about how the likelihood of symptons depends on age?
+
+```{r}
+heart %>% group_by(agegrp, chd) %>% summarize(n=n()) %>%
+spread(chd,n) %>%
+mutate(proportion=Yes/(Yes+No)) %>%
+ggplot(aes(x=agegrp, y=proportion))+geom_col()
+```
+
+There is one significant line that tells us the magnitude of "proportion" which is `mutate(proportion=Yes/(Yes+No))`. That is, the y-axis is proportion of people who have experience with coronary heart diesease with respect to the age group (Given by the last line `aes(x=agegrp, y=proportion)`).
+
+As we can see from the graph, as age goes up, there is a higher likeliness of people contract coronary heart disease. Thus, with the data given, we can conclude that the likeliness of experiencing coronary heart disease depends on age, with expectancy that it is on a positive trend of these two variables.
+
+## 4 (c) Fit a logstic regression predicting presence or absence of coronary heart disease from the (actual) age. Use the data frame you just read in from the file, and display the results.
+
+Since the response variable is categorial, we should change *chd* to be a factor; however the question does ask to use the dataframe that we just read in from the file; we cannot create a copy.
+
+The results of the logistic regression is found below:
+```{r}
+# instead, we can just use `factor` in place
+heart.1 = glm(factor(chd)~age, family = "binomial", data=heart)
+summary(heart.1)
+```
+
+## 4 (d) Is there a significant association between age and presence of significant symptoms of coronary heart disease? If there is, what kind of relationship is it? Explain briefly, but carefully, using the output from this part only.
+
+Since the p-value is 4.02e-06, which is less than $\alpha = 0.05$, we can conclude that there is a strongly significant relation between age and likeliness of contracting coronary heart disease. 
+
+Given that there is a positive slope, where age's slope is at 0.11092, it means that age has a positive effect on contracting coronary heart disease. That is, the higher the age, there is a higher likelihood of contracting coronary heart disease.
+
+## 4 (e) Read the data from this file, display this dataframe, and explain how the data is formatted differently.
+
+Since the file given is a csv, we can simply use `read_csv`
+
+```{r}
+new_url = "http://www.utsc.utoronto.ca/~butler/d29/chdage2.csv"
+new_heart = read_csv(new_url)
+```
+
+And let's have a peek of the data
+
+```{r}
+head(new_heart)
+```
+
+Interesting. 
+
+In the original dataframe from (a), it displayed the age of every single person in the data collected, determining if that specific person has contracted coronary heart disease. The dataframe in (a) allows for duplicate ages.
+
+The data from this new file shows a consolidation; that is, it shows all possible ages of the data collected, and the frequencies of people in that age who have and haven't contracted coronary heart disease in two seperate columns. The dataframe here does not allow duplicate ages.
+
+Thus, these two files are formatted differently from each other.
+
+## 4 (f) Run a logistic regression predicting the probability of significant evidence of coronary hear disease from age using the new data set. Explain briefly how your conclusions are the same.
+
+This requires some elbow grease, however, this is not that tedious.
+
+First, we need to use `cbind` and `with` so that we have a response matrix; `glm` would require a matrix for something like the data formatted above.
+
+```{r}
+# we switch the order of "Yes" and "No" because the amount of "Yes"s
+# acts positively as in (c); this has to deal with how glm deals with
+# `factor()` as well
+response = with(new_heart, cbind(Yes, No))
+```
+Just to double check that what we have is what we wanted:
+```{r}
+head(response)
+```
+And it is exactly what we wanted. Now we can feed it into glm
+
+```{r}
+new_heart.1 = glm(response~age, family = "binomial", data = new_heart)
+summary(new_heart.1)
+```
+
+If we were to compare our results here to (d), the results are exactly the same.
+
+The P-value of age is at 4.02e-06, which is less than $\alpha = 0.05$. This means that age is strongly significant to the risk of contracting coronary heart disease. Likewise, the slope of age is labelled at 0.11092, which means that age has a positive effect on a person contracting coronary heart disease. That is, as age goes up, there is a higher risk that the person will contract coronary heart disease.
+
+As expected, the conclusions here are exactly the same as in (d) since the data from the two files are the "same".

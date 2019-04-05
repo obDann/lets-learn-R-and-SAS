@@ -1,0 +1,239 @@
+---
+title: "Assignment 7"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r message = FALSE}
+library(tidyverse)
+```
+
+
+
+# Question 2
+
+## (a) Read in the data and display at least some of it
+
+Since it is a csv, we go as follows
+```{r}
+url = "https://www.utsc.utoronto.ca/~butler/d29/animal-dissim.csv"
+anidis = read_csv(url)
+```
+
+and we look at the data frame
+
+```{r}
+anidis
+```
+
+## (b) Turn your data frame into a `dist` object and display it.
+
+Given that the dissimilarity was calculated on which the animals already disagree, we can use `as.dist` as opposed to just `dist`. Likewise, we have to remove the `name` variable in order for this to work
+
+```{r}
+d = anidis %>% select(-name) %>% as.dist()
+d
+```
+
+## (c) Run a hierarchial cluster analysis using complete linkage, and display a dendrogram
+
+```{r}
+anidis.1 = hclust(d, method = "complete")
+plot(anidis.1)
+```
+
+## (d) Pick two clusters, containing at least two animals in each, that get joined together somewhere in your dendrogram. Verify the "height" at which the two clusters are joined together in your dendrogram is correct.
+
+I will pick the elephant-whale cluster build against the duck-eagle. The elephant-whale cluster appears to have a "height" of 0, while the duck-eagle cluster appears to have a "height" of 2. 
+
+We can verify it by first looking at the labels. First, get the index of the elephant and the whale
+
+```{r}
+ele.index = which(anidis.1$labels == "elephant")
+wha.index = which(anidis.1$labels == "whale")
+temp = c(ele.index, wha.index)
+temp
+```
+
+So, in our hierarchial cluster analysis, elephant and whale are respectively numbered 9 and 20. Next, we get the duck-eagle indexes
+
+```{r}
+duc.index = which(anidis.1$labels == "duck")
+eag.index = which(anidis.1$labels == "eagle")
+temp = c(duc.index, eag.index)
+temp
+```
+
+The duck and eagle are respectively 7 and 8. 
+
+So now, we look at the "merge" to see the combinations of indexes and the heights of the combinations:
+
+```{r}
+anidis.1 %>% with(cbind(merge, height)) %>% data.frame() -> temp
+colnames(temp)
+```
+
+I had the data frame of `temp` expanded before, but due to length I will not expand on it. `V1` and `V2` show which animals are combined with resepct to the analysis' labels (at a negative value). `height` shows the combination's height.
+
+Given that elephant is indexed at 9, we want to have V1 to be -9 for the elephant, and have V2 to be -20 for the whale (or vice-versa) to determine the height of the two according to the dendrogram:
+
+```{r}
+filter(temp, V1==-9)
+```
+So, the height of the elephant and whale is 0, and our dendrogram is consistent with that conclusion.
+
+We continue on with the duck-eagle combination that is indexed as -7 and -8...
+
+```{r}
+filter(temp, V1 ==-7)
+```
+
+and the height between the two is 2. 
+
+Thus, our dendrogram is consistent with the elephant-whale cluster having a height of 0, and the duck-eagle combination having a height of 2.
+
+## (e) Obtain a cluster analysis using Ward's method, and disply the results on a dendrogram
+
+Not much to change from (c):
+
+```{r}
+anidis.2 = hclust(d, method = "ward.D")
+plot(anidis.2)
+```
+
+## (f) What do you think is a good number of clusters? Add these clusters to your plot.
+
+I think a good number of clusters is about 5 since that brings us some insight:
+
+```{r}
+plot(anidis.2)
+rect.hclust(anidis.2, 5)
+```
+
+## (g) Based on what you know about these animals, what do the ones in the same one of your clusters have in common (or, equivalently, makes your clusters different?)
+
+Going from left to right...
+
+* cat-rabbit-cow-lions are all mammals that are warm blooded and typically moves on all fours
+
+* chimpanzee-human-elephant-whale are all mammals that can gain large amount of weight and tends to be quite slower than the cat-rabbit-cow-lion cluster
+
+* duck-eagles are birds that can fly; they are not mammals or reptiles, and they are warm blooded.
+
+* herring-salmon-frog-lizards are creatures that are cold blooded and can survive underwater. This cluster includes reptiles and fish.
+
+* fly-ant-lobster-catpillar-spiders are insects-like. I say insect-*like* since lobsters do have multiple legs and have odd defense mechanisms in their respective environment similar to the other insects within the cluster.
+
+# Question 4
+
+## (a) Read in and display some of the data
+
+Given that this is a csv
+
+```{r}
+url = "http://www.utsc.utoronto.ca/~butler/d29/wine_quality.csv"
+wiq0 = read_csv(url)
+```
+
+and let's take a glimpse at the dataframe itself
+
+```{r}
+glimpse(wiq0)
+```
+
+## (b) Get rid of the column containing the quality ratings and standardize everything else. Save the result. Display some of it. Given that some of the variables are skewed to the right, does it look as if you successfully standardized your columns, based on what you see? Explain briefly.
+
+So to do this, we take some inspiration from PASIAS...
+```{r}
+wiq0 %>% select(-qual) %>%  # remove the wine quality, as instructed
+  scale() -> wiq # then scale it
+```
+
+I know that there are many variables, and the numbers may have a large amount of decimal numbers so...
+
+```{r}
+round(wiq, 2) %>% head()
+```
+
+I would like to recall what it means if a variable is skewed to the right: unimodal where the mode or "peak" occurs on the left in a histogram.
+
+Based on what I am seeing based on the first 6 rows of data, I find that it is evident for certain variables like `fixed_acidity`, `volatile_acidity`, `sulphates` (and possibly others) to be right skewed since there tends to be higher frequencies on the lower-scaled bins and low (decreasing) frequencies on high-scaled bins.
+
+So, given these few rows of data, I believe that my data is successfully standardized.
+
+This can be just coincidental given that we only have 6 rows, but we can use a histogram to demonstrate right-skewness for just one variable:
+```{r}
+ggplot(data.frame(wiq), aes(x = volatile_acidity)) + geom_histogram()
+```
+
+Definitely some right-skewness.
+
+## (c) Obtain a kmeans clustering using 4 clusters. Save the result. Don't display it yet. Use the option that allows K-means to run multiple times and take the best answer.
+
+This is hinting towards `nstart` as a parameter. Similar to what we did in class, I will set nstart to 20.
+
+I will also set a seed since clusters can be similar, but never the same
+
+```{r}
+set.seed(1001346377) # my student number
+wiq.1 = kmeans(wiq, 4, nstart=20)
+```
+
+
+## (d) Make a data frame containing the wine quality ratings from the original data set and the cluster memberships from `kmeans` output. Display the first few lines of this data frame
+
+We just need to take `wiq.1's cluster` variable, and the quality ratings from the original read-in data frame
+
+```{r}
+quavsclus = data.frame(quality = wiq0$qual, group=wiq.1$cluster)
+head(quavsclus)
+```
+
+## (e) Make a table showing how many wines from each quality rating ended up in each cluster. Which cluster did most of the Excellent wines end up in? Do you think that the clusters and the quality ratings correspond well? Explain briefly.
+
+This is a good place to use `table`
+
+```{r}
+table(quavsclus$quality, quavsclus$group)
+```
+
+Within the `excellent` group, it appears that the majority of excellent wines appears in cluster 2:
+
+```{r}
+max(166, 549, 4, 341)
+```
+
+
+However, if we put this to scale...
+
+```{r}
+549 / (166 + 549 + 4 + 341)
+```
+
+~ 50% of excellent wines ended up in cluster 2 within the `excellent` group.
+
+Continuing on, with the `good` wines, it is difficult to find where the "majority" lies since the highest amount of frequencies is at cluster 1 (745), but cluster 2 trails by 9 pieces of frequencies (at 736), which is small given the scale of our data. Following cluster 2 in frequencies is cluster 4 (at 669).
+
+As for `moderate` wines, we see that the majority lies in cluster 1 (at 737 frequencies), which is good, but following that is cluster 4 (at 379).
+
+As for `poor` wines, we see that the majority of frequencies occur in cluster 4.
+
+After evaluating each group individually, what I am seeing is that cluster 4 is typically the secondary cluster in leading frequencies. What that tells me is that the clusters and the quality ratings do not really correspond well since there is little room for clear differentiation between clusters (at the very least, for 4 clusters).
+
+## (f) Make a scree plot for these data, for each number of clusters from 2 to 20. Did it make sense to fit four clusters, or would a a different number have been better?
+
+As opposed to doing this iteratively, I suppose we can use `map_dbl` using the `$tot.withinss` (within cluster sum square) variable:
+
+```{r}
+tibble(clusters=2:20) %>% 
+  mutate(ssq = map_dbl(clusters, 
+                       ~kmeans(wiq, ., nstart=20, iter.max=20)$tot.withinss)) %>% 
+  ggplot(aes(x = clusters, y = ssq)) + geom_line() + geom_point()
+```
+
+That took a while.
+
+It's quite difficult to see where the "elbow" is since the connection to each point appears so smoothly.
+
+However, to hunt the "elbow", what to hunt for is an awkward change-of-slope. From what I am seeing (and this is a judgement call), it appears that having 9 clusters seems best since the slope from 8 clusters to 10 clusters is not so smooth. Thus, it did not make sense to originally fit 4 clusters.

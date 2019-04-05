@@ -1,0 +1,289 @@
+---
+title: "Assignment 2"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+# Question 2
+
+## 2 (a) To obtain the data set, first install the package (with `install.packages`) and then load it (with `library`). Display some of the data set which is called `lowbwt`.
+
+We may as well have `tidyverse` and `MASS` ready as well
+
+```{r message = FALSE}
+library(MASS)
+library(tidyverse)
+library(aplore3)
+```
+
+And let's view some rows of `lowbwt` with `glimpse` to know we have the right thing
+```{r}
+glimpse(lowbwt)
+```
+
+seems like we have the right data set.
+
+## 2 (b) Each line of the data file represents one woman. How do you know that a logistic regression will predict the probability of a low birth weight, rather than a non-low birth weight. Explain briefly.
+
+As each row of the dataset represents a singular woman, the data is almost what is wanted for a logistic regression, but there are a couple things we have to confirm.
+
+In terms of the data itself, and if we look at the type of variable `low` is, we see that `low` is of a type `fctr`. To conduct a logistic regression in R, it is required that the response variable must be a `fctr`. That is one requirement to predicting the probablity of a low birth weight.
+
+Another requirement is that logistic regression is suited for a binary decision, that is, there should only be two possible values for `low`; [less than 2500 g] or [greater than or equal to 2500 g]. To confirm that, we must use `levels`
+
+```{r}
+levels(lowbwt$low)
+```
+
+As there are only two possible categorical values in `low`, we can conclude that the requirements for a logistic regression in R has been fulfilled, and that a logistic regression will predict the probability of a low birth weight.
+
+Side note: It should also be noted that the first level is `>= 2500 g`, which is going to be our baseline for predictions, and that `< 2500 g` will be the value that is going to predicted in our logistic regression.
+
+## 2 (c) Use logistic regression to predict the probability of a low birth weight as it depends on the mother's age, weight at last menstrual period, race, and number of first trimester physician visits. Display the results.
+
+(Notes:
+
+i. you will probably have to consult the help for this data set to find out which variables these are. To do this, make a new code chunk, and in it, put a question mark followed by the name of the data frame. Running this should display the help for the data in the Help pane bottom right
+
+ii. The number of physician visits is categorized as none, one, two or more. That's OK. Use it as is.
+)
+
+So, we use the hint in the notes:
+```{r}
+?lowbwt
+```
+
+Given the `man` page of `lowbwt`, we find the description of the following variables matching to the variables asked:
+
+* `age` - Age of mother (Years)
+* `lwt` - Weight of mother at last menstrual period (Pounds)
+* `race` - Race of the mother
+* `ftv` - Number of physician visits during the trimester.
+
+So, we now conduct the logistic regression with the asked variables:
+
+```{r}
+lowbwt.1=glm(low~age+lwt+race+ftv, family="binomial", data=lowbwt)
+summary(lowbwt.1)
+```
+
+## 2 (d) We are going to remove explanatory variables that do not add anything significant to the model. Explain briefly why we should use `drop1` rather than `summary` to assess this.
+
+The focus of `drop1` is to determine which explanatory variables are significant by giving p-values of each variable. `drop1` accounts for categorical variables, unlinke `summary`.
+
+If we look at the results above using `summary`, we see the **categorical values** being deemed as **categorical variables** (e.g. `raceBlank` and `raceOther`). This is a big concern because we may come to a possible conclusion that one categorical value is significant and another isn't of the same variable; we would not know whether the variable itself is significant or not. 
+
+`drop1` allows us to reliably know whether a categorical fits with the model, and thus, it is best used for this logistic regression model.
+
+## 2 (e) Use backward elimination to build a better model for low birth weight. Do this using `step`, or by hand using `drop1` and `update`, whichever you prefer. Display the output for your final model. Use $\alpha = 0.10$. You should find that `race` and `lwt` are the two explanatory variables that remain
+
+Let's be courageous and use `step`
+
+```{r}
+lowbwt.2 = step(lowbwt.1, direction="backward", test="Chisq")
+```
+
+Quite a bit of output, but as expected, `race` and `lwt` are the final two explanatory variables than remain as `race`'s and `lwt`'s p-value is less than $\alpha = 0.10$. Thus, we can conclude that `race` and `lwt` are strongly significant when determining if a baby has a low birth weight or not.
+
+## 2 (f) From the output of your final model, describe the effects of each remaining explanatory variable on the probability of the baby being low birth weight.
+
+Given that `summary` enables us to determine the slopes of each variable (or categorical value), we run it as follows:
+
+```{r}
+summary(lowbwt.2)
+```
+
+I would like to recall something I pointed out earlier:
+
+```{r}
+levels(lowbwt$low)
+```
+
+"It should also be noted that the first level is `>= 2500 g`, which is going to be our baseline for predictions, and that `< 2500 g` will be the value that is going to predicted in our logistic regression."
+
+Now, I would now like to go back to go back to the model. `lwt` has a negative slope (at -0.0152), which means that the higher that `lwt` is, the less likely the baby will have a weight less than 2,500 g.
+
+As a sanity check, we look at the description of `lwt`: "Weight of mother at last menstrual period". This does make sense; if the mother weighs more, there is a higher chance that the baby will weigh more as well since the baby's nutrition depends on what the mother consumes.
+
+As for `race`, both `raceBlack` and `raceOther` have positive "slopes" (or better yet, an addition to the intercept) at 1.0810 and 0.4806 respectively. That is, if the baby is non-white, there is a higher likelyhood that the baby will have a weight less than 2,500 g. `raceWhite` is held as a basline within the intercept, and therefore has the lowest probability among all races.
+
+
+## 2 (g) Find the quartiles of `lwt`, and obtain a list of the races. Save these in variables for the next part
+
+Let's use a STAC32 way
+
+Let's get the quantile values first:
+
+```{r}
+lowbwt %>% summarize(Q1 = quantile(lwt, 0.25),
+                     median = quantile(lwt, 0.5),
+                     Q3 = quantile(lwt, 0.75)) -> quantile_vals
+quantile_vals = list(lwt=t(quantile_vals))
+quantile_vals
+```
+
+Then let's get a list of races. We can use `levels` with this, and as requested, we save it as a list
+
+```{r}
+races = levels(lowbwt$race)
+races = list(race=races)
+races
+```
+
+## 2 (h) Make a data frame containing all combinations of weight at last menstrual period and race whose values you obtained in the previous part. Predict the probability of a low-birth-weight baby for each of these, and display the results side by side with the values they are 
+
+I do know a tiny bit of SQL/relational algebra, and what is asked is something like the cartesian product. This took a tiny bit of googling. 
+```{r}
+lowbwt.3 = merge(quantile_vals,races,all=TRUE)
+lowbwt.3
+```
+
+Now, we would like to make the predictions
+
+```{r}
+p=predict(lowbwt.2, lowbwt.3, type="response")
+p
+```
+
+And we would like to see the predictions side-by-side with our new dataframe
+```{r}
+cbind(lowbwt.3, p)
+```
+
+## 2 (i) Explain briefly how the predicted probabilities for each combination of `lwt` and `race` are consistent with your assessment of the slopes in part (f)
+
+Firstly, let's get `raceWhite` out of the way; `raceWhite` is "categorized" within the intercept (as it is within the baseline), and hence it has the lowest probability among all races. `raceBlack` and `raceOther` positively add onto the probability as shown in (f), and thus shows consistency.
+
+Let's look at `raceBlack` and `raceOther`. In (f), the output showed that `raceOther` has a lower probability than `raceBlack`, and our output appears consistent if we compare probabilities of `raceBlack` for each `lwt` value with the probabilities of `raceOther` for each `lwt` value. It is clear that `raceOther` has a lower probability in comparison to `raceBlack`, and this is consistent with the assessment in (f).
+
+It also appears that, regardless of race, the higher the `lwt` is, the probability of getting a low birth weight decreases, which is also consistent with the assessment made in (f).
+
+Therefore, given our probabilities, our results appear consistent with (f).
+
+# Question 4
+
+## 4 (a) Read in the data and verify that you have the right number of rows, and more columns than will fit on the page
+
+We read the csv file as follows:
+
+```{r}
+url = "http://www.utsc.utoronto.ca/~butler/d29/wine_quality.csv"
+wine = read_csv(url)
+wine
+```
+
+Since I am knitting this to a PDF, it shows there are an addition 4,888 rows (plus 10 that's currently on there). Thus, we have the same number of rows as described.
+
+Likewise, we see 7 other variables that cannot fit the page that include: 
+
+* free_sulfur_dioxide
+* total_sulfur_dioxide
+* density
+* pH
+* sulphates
+* alcohol
+* qual
+
+Thus, the dataset that we have seems identical to what was described, as wanted.
+
+## 4 (b) Why would an ordinal logistic regression be better than a nominal one for these data? Explain briefly
+
+This is because it depends on the response variable. In our case, we are trying to predict wine quality:
+
+```{r}
+levels(factor(wine$qual))
+```
+
+and it can be ordered from `poor` to `excellent`; an ordinal logistic regression will be better than a nominal one in this case since the quality of wine can be naturally ordered. Nominal regression treats response variables as "equal weighting" where order does not have to make sense, thus, conducting a nominal regression model is not suitable.
+
+## 4 (c) Create a suitable ordered response factor, or explain briefly why you can turn qual into a factor directly.
+
+As we see from our output in (b), it's already ordered properly from greatest to least: `excellent` > `good` > `moderate` > `poor`. This is because using a factor orders the levels alphabetically, and coincidentally, our factor shows greatest to least.
+
+However, I am not comfortable with "greatest to least". Instead, I want "least to greatest" so I will have a crack at it:
+
+```{r}
+quals = wine %>% distinct(qual) %>% pull(qual)
+quals
+```
+
+There are a few things we need to switch around
+
+```{r}
+quals1 = quals[c(4, 2, 1, 3)]
+quals1
+```
+
+And let's attach quals1 to our data frame
+
+```{r}
+wine = wine %>% mutate(qual_ord=ordered(qual, quals1))
+# let's use glimpse so that we can see my new variable as an ordered factor
+glimpse(wine)
+```
+
+## 4 (d) Fit an ordered logistic regression predicting quality from volatile acidicy and residual sugar. To enable the grader to check that you have done the right thing, "print" the results: that is, type the name of your fitted model object on a line by itself and include the output from this in what you hand in.
+
+Thankfully, the variable names are easy to interpret, so we use `polr`:
+
+```{r}
+wine.1=polr(qual_ord~volatile_acidity + residual_sugar, data = wine)
+```
+
+As requested, we show our output:
+```{r}
+wine.1
+```
+
+
+## 4 (e) Can either one of these two explanatory variables be dropped from the model? Obtain some output that will help you decide
+
+`drop1` seems like a suitable candidate for this 
+
+```{r}
+drop1(wine.1, test="Chisq")
+```
+
+As we can see, both variables are considered significant to determine the quality of wine because the two have a p-value less than $\alpha = 0.05$ (at 2.2e-16 and 2.278e-11 for `volatile_acidity` and `residual_sugar` respectively).
+
+Since both of the explanatory variables are significant, these two explanatory variables cannot be dropped from the model.
+
+## 4 (f) The quartiles of `volatile_acidity` are 0.21 and 0.32, and of `residual_sugar` are 1.7 and 9.9. Make a data frame containing all combinations of these values, and use it to predict that wines with those values of `volatile_acidity` and `residual_sugar` will be awarded each of the ratings.
+
+Since I "cheated" a bit from the previous question by using `merge`; I have been informed that `crossing` is another way to say "cross join":
+
+```{r}
+vol_aci = c(0.21, 0.32)
+res_sug = c(1.7, 9.9)
+# we have to typcase combos because crossing only returns a tibble
+combos = data.frame(crossing(volatile_acidity = vol_aci, residual_sugar = res_sug))
+# and we display our combinations
+combos
+```
+Now, as instructed by the question, I will be using our original model from (d) to predict our combinations' probabilities.
+
+```{r}
+p=predict(wine.1, combos, type="probs")
+cbind(combos, p)
+```
+
+## 4 (g) Describe the effect of increasing residual sugar on the wine quality rating
+
+To scope this down, let's focus on only the `volatile_acidity` being fixated at 0.21 (as it is "fair" to, we are not changing anything other than residual sugar). 
+
+We see that an increase in residual sugar will leave higher probabilities in categories such as "poor" and "moderate" (for example, look at the probability of "poor" increasing from 0.02194053 to 0.02910230 when you increase the `resuidal_sugar`). However, there are lower probabilities in categories such as "good" and "excellent". 
+
+We can draw the same conclusions if we were to fixate `volatile_acidity` at 0.32.
+
+Therefore, we can conclude that an increase in residual sugar will decrease the wine quality rating.
+
+## 4 (h) Describe the effect of increasing volatile acidity on the wine quality rating
+
+Let's take the same logic as we did in (g) and fixate `residual_sugar` being at 1.7.
+
+We see that an increase in volatile acidity will heave higher probabilities in categories such as "poor" and "moderate", but lower probabilities such as "good" and "excellent".
+
+We can also draw the same conclusions if we fixate `residual_sugar` at 9.9.
+
+Therefore, we can conclude than an increase in `volatile acidity` will decrease the wine quality rating.

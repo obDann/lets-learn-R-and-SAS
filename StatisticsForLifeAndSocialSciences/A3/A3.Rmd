@@ -1,0 +1,315 @@
+---
+title: "Assignment 3"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r message = FALSE}
+library(tidyverse)
+library(nnet)
+library(survival)
+library(survminer)
+```
+
+# Question 2
+
+## (a) Read in the data and display at least some of your data frame. Do you have what you expected?
+
+Given that these values are separated by a single space, we can use `read_delim` with a space delimiter
+
+```{r}
+url = "https://www.utsc.utoronto.ca/~butler/d29/mercury.txt"
+merc = read_delim(url, " ")
+```
+
+And let's ensure that our data looks okay
+
+```{r}
+head(merc)
+```
+
+It looks as expected
+
+## (b) Why is this not the kind of model you would fit with `polr`? Explain briefly
+
+It is only appropriate to use `polr` when you would want an ordinal regression. That is, it matters when the response variable can be ordered in some way (e.g. greatest to least).
+
+Since we don't have that much knowledge of the lake's labelling procedure (as it is deemed insignifcant), it would be ideal to fit a nominal regression using `multinom`
+
+## (c) Fit a suitable model for predicting lake type from mercury content
+
+As stated in (b), we will use `multinom`
+
+```{r}
+merc.1 = multinom(factor(lake)~mercury, data=merc)
+```
+
+and we can use `summary`
+
+```{r}
+summary(merc.1)
+```
+
+## (d) Test whether mercury content is significant in predicting lake type. What do you conclude?
+
+Using `drop1` on a multinom object does not work.
+
+So we take out mercury, fit again and compare using anova:
+
+```{r}
+maine.2 = update(merc.1, .~.-mercury)
+```
+
+then we conduct an anova:
+
+```{r}
+anova(maine.2, merc.1)
+```
+
+
+The probability is low, so we should keep mercury. That is, it has a significant effect in predicting lake type.
+
+Do not use `step` here.
+
+## (e) For `mercury` values 0.1, 0.2, 0.5, 1, 1.5, predict lake type probabilities for each of them, and display your results side by side with the values they are predicitons for
+
+First, let's create a data frame
+
+```{r}
+small = data.frame(mercury=c(0.1, 0.2, 0.5, 1, 1.5))
+small
+```
+
+Then let's predict
+
+```{r}
+p = predict(merc.1, small, type="probs")
+cbind(small, p)
+```
+
+A bit hard to see, so let's just round it
+```{r}
+compare = cbind(small, round(p, 2))
+compare
+```
+
+Much better.
+
+## (f) Describe how predicted lake type changes as mercury content increases.
+
+If we look at a small mercury value, say 0.1 or 0.2, we see that there are existant probabilities in lake 1. In this case, we can somewhat elude to the idea that if the mercury content is small, it most likely would be coming from lake 1 (especially when lake 1 has the highest probability with lowest mercury listed at 0.1). However, if mercury content increases, the likeliness of the water coming from lake 1 is non existant.
+
+As for lake 2, it appears that there is a "sweet spot" of probability for mercury content:
+
+```{r}
+ggplot(compare, aes(x=mercury, y=`2`)) + geom_point()  # backquotes is necessary!
+```
+
+It looks like it is curving. At the very least, in the range from [0, 0.5], as mercury content increases there is a higher probability that the water may be coming from lake 2. As mercury content increases from 1.0 and beyond, the likeliness of water coming from lake 2 decreases.
+
+As for lake 3, we can simply come to the conclusion that the higher the mercury content, the higher the probability that it may come from lake 3:
+
+```{r}
+ggplot(compare, aes(x=mercury, y=`3`)) + geom_point()  # backquotes is necessary!
+```
+
+# Question 4
+
+## (a) What are the full names of the three treatments (as shown in the help for the data set)? The data set only contains abbreviations of these names
+
+Let me cheat a bit by looking at the `man` page of `colon`
+
+```{r}
+?colon
+```
+
+Appears that `rx` indicates the type of treatment; and let's just list them out:
+
+```{r}
+colon %>% distinct(rx)
+```
+
+* Obs stands for observation
+* Lev stands for Levamisole and
+* Lev+5FU also stands for Levamisole+5-FU (however, after googling a bit, it appears that it stands for levamisole and flurouacil).
+
+## (b) Read in and display some of the data. How many subjects do you have?
+
+I will be trusting Professor Butler's csv file:
+
+```{r}
+url = "https://www.utsc.utoronto.ca/~butler/d29/colon.csv"
+tidy.colon = read_csv(url)
+```
+
+I think `glimpse` is a good indicator of this.
+
+```{r}
+glimpse(tidy.colon)
+```
+
+There are 888 subjects after tidying.
+
+## (c) Run the following code, replacing my intial data frame d with the name of your data frame read in the file. Describe the output that it produces. There are two things to note: what it shows for a quantitative variable and what it shows for a categorical variable
+
+```{r}
+tidy.colon %>% mutate_if(is.character, factor) %>% summary()
+```
+Let's interpret code correctly first; take our data frame, change any "character" variables to factors, and run the summary.
+
+If we did not change the character variables, we would have something like this
+```{r}
+summary(tidy.colon$rx)
+```
+and it does not seem that anything can be interpretted. 
+
+However with the output above, it shows the frequencies of each categorical value of a categorical variable; this is helpful to answer questions like "Are there more males than females in the data set?". 
+
+As for quantitative variables, they stay the same when you regularly call `summary` on `tidy.colon`; displaying the minimum value, maximum value, interquartile range and the mean. For instance, the below provides exactly the same as the above:
+```{r}
+summary(tidy.colon$id)
+```
+
+## (d) Obtain a suitable response variable for a Cox proportional-hazards model, using the time until recurrence and the column that says whether colon cancer recurred or not for each subject. Display the first few values of your response variable
+
+This calls for `Surv` from the `survival` package. Thanks to Prof. Butler, the time variable is in the tidied data set.
+
+```{r}
+y=with(tidy.colon, Surv(time, status=="recur"))
+```
+
+And as instructed, we display the first few values from the response variable
+
+```{r}
+head(y)
+```
+
+
+## (e) The second value (and also 8th, 9th, and 10th) of your response variable is displayed with a plus sign. What does that mean?
+
+This means that the specific patient is **censored**. **Censored** follows the idea that there is not a definitive time measurement for a subject to have an event occur when data was recorded. That is, at the time the data was recorded, the patient did not have colon cancer recur, and it has been 3087 (and possibly more) days since colon cancer recurred (from what I am assuming is since chemotherapy). 
+
+We can somewhat confirm this with the following:
+```{r}
+tidy.colon %>% select(status, time)
+```
+
+As we can see, the second, eighth, ninth, and tenth row have a status of "no recur".
+
+
+## (f) Fit a Cox proprtional hazards model predicting the response variable you made in part (d) from all the other variables except for
+
+*i. those that were used in making the response variable*
+
+*ii. those that make no sense to include in a prediction model. You don't need to display your results*
+
+*(Hint: in a model, . on the right side of the squiggle means "all the variables in the data frame except for the one used on the left of the squiggle, if that was in the data frame")*
+
+I still have `?colon` on the bottom right pane of RStudio; the obvious ones that should be ruled out are:
+
+* time
+* status
+
+as for ii. `id` seems insignificant as it is just the patient's id. As for the others, the only one that does stand out is `node4`. `node4` just determines if the patient has more than 4 lymph (positive) nodes. However, there is already a variable called `nodes` which determines the number of lymph nodes the patient has, which makes `node4` to be a bloated variable that is derived from `nodes`. `etype` is already out since it was tidied.
+
+All other variables seem to be okay; I personally had to look up what they mean, and it seems that perforation, adherence, differentiation, extent (of local spread), and time from surgery to registration (for chemotherapy) all seem relative. I find that age and sex are necessary with any medical record.
+
+
+And so, here is the Cox proportional hazards model:
+```{r}
+tidy.colon.1 = coxph(y~.-id - time - status - node4, data=tidy.colon) 
+# keep data = tidy.colon for later!
+```
+
+## (g) Use `step` with `trace=0` to do a backward elimination of non-significant explanatory variables of the previous part, one at a time. Save the step into a variable, and display the `drop1` output of your final model. Are all the remaining variables significant at $\alpha = 0.10$? 
+
+*Note: for the remainder of this question, use the output model from `step` as your "best model". I don't need you to eliminate any more variables*
+
+As instructed, we use `step`
+
+```{r}
+tidy.colon.2 = step(tidy.colon.1, trace=0, test="Chisq")
+```
+
+
+then we display the `drop1` output
+
+```{r}
+drop1(tidy.colon.2, test="Chisq")
+```
+
+After running `step`, I oddly see two variables that do not seem significant when $\alpha = 0.1$ which is `obstruct` and `differ` as their p-values are higher than $\alpha$. Ordinarily, I would call for further backwards elimination, but that is not requested from the note.
+
+## (h) The major focus of the researchers was on whether the treatment affected the time to recurrence. Is treatment in your output model from `step`? Use your results from part (c) to obtain "representative" values for all the other explanatory variables in that model: the median for quantitative variables and the most frequently observed category for categorical variables
+
+As the "best model" included the variable `rx` as its p-value is small, which stands for treatment. We can conclude that treatment affected the time to recurrence.
+
+Now, as requested: the median for quantitative variables and the most frequently observed category. I somewhat see where this is going:
+```{r}
+Sex = "male"
+Obstruct = "no"
+Nodes = 2.0
+Differ = "moderate"
+Extent = "serosa"
+Surg = "short"
+```
+
+## (i) Make a data frame contiang each of the three treatments combined with the representative values you obtained in the previous part. This is going to be an input to a prediction, so make sure the columns of your new data frame have the same names as the variables they are values of
+
+Sounds great, now we just create rx
+
+```{r}
+rx = data.frame(rx=c("Obs", "Lev", "Lev+5FU"))
+rx
+```
+
+alright, now for `crossing`!
+```{r}
+my.df = crossing(rx, sex=c(Sex), obstruct=c(Obstruct),
+                 nodes=c(Nodes), differ=c(Differ), 
+                 extent=c(Extent), surg=c(Surg))
+my.df
+```
+
+
+## (j) Obtain predicted survival curves for each of the three treatments and the representative values for the other variables you obtained earlier. Bear in mind that we will be plotting the results shortly
+
+This should be using, we just use `survfit`
+
+```{r}
+p = survfit(tidy.colon.2, my.df, data=tidy.colon)
+# I would do summary on p, but the output for it is large, and would be inconvenient
+```
+
+## (k) Make a plot of the predicted survival curves for the three different treatments, and describe briefly how the three treatments compare. In your description, you should use the full names for the treatments, as far as they are known.
+
+We can use `ggsurvplot`
+```{r}
+ggsurvplot(p, conf.int=F)
+```
+
+The first thing we have to note is that stratum 1 is an observational treatment (the orange line), stratum 2 is the levamisole treatment (the green line), and stratum 3 is the levamisole and flurouacil [5-FU] (the blue line).
+
+In our case, the main question that we are answering with this graph is "which treatment would cause the least amount of  recurrences of colon cancer, relative to time (days)?"
+
+Usually "up and to the right" is the best possibility, and we find that stratum 3 is the best. That is, the levamisole and fluroacil treatment is much more effective than just levamisole or the observational treatments. Thus, we can say that the levamisole and fluroacil treatment is less likely for recurrences of colon cancer in comparison to the other two treatments.
+
+Stratum 1 (observational treatment) and 2 (levamisole treatment) are relatively close, with the levamisole treatment being just a little bit better than the observational treatment. Thus, it is more likely that colon cancer recurrence may occur more in the observational treatment in comparison to the fluroacil treatment (non 5-FU).
+
+
+## (l) Display the summary of your best model. How is some of the output consistent with your graph?
+
+```{r}
+summary(tidy.colon.2)
+```
+
+Recall in (d) that we set a suitable response variable, and the key thing in our output was "`status==recur`"; if this is true, the response value is a 1, otherwise the response value is 0. 
+
+With this knowledge in mind, a positive coefficient means that there will be a higher probability of a recurrence due to what we did in (d). 
+
+As we see in our summary, there is a negative coefficient for `rxLev+5FU` (at -0.453521), that is, Lev+5FU should be providing a decrease of a recurrence in colon cancer. If we look at our graph, we find that the Lev+5FU has the highest probability of "surviving", or in our case, the highest probability a patient does not have colon cancer recurring. This seems consistent.
+
+As for `rxObs`, we see that there is a positive coefficient at 0.061564. That is, an observational treatment should be increasing the probability of a recurrence in colon cancer. If we look at our graph, we find that the observational treatment has the lowest probability that a patient does not have colon cancer recurring. By exhaustion, we know that `rxLev` is in the "baseline" of our model, and it is expected to be in between `Lev+5FU` and `rxObs` (but much more closer to `rxObs` due to that small coefficient). Looking at our graph, just levamisole (non 5FU) is in between the levamisole 5FU treatment and the observational treatment, as expected.
+
+Thus, our output seems consistent with the graph above.

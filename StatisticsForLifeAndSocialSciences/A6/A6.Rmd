@@ -1,0 +1,190 @@
+---
+title: "Assignment 6"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r message = FALSE}
+library(MASS)
+library(car)
+library(tidyverse)
+```
+
+# Question 2
+
+## (a) Read in the data and display (some of) the data
+
+Since this is a csv
+
+```{r}
+url = "http://www.utsc.utoronto.ca/~butler/d29/hsb.csv"
+hsb = read_csv(url)
+```
+
+and let's read some of the data
+
+```{r}
+head(hsb)
+```
+
+columns and magnitudes is as expected.
+
+## (b) Run a discriminant analysis to assess association between socio-economic status and the five test scores `read` through `socst`
+
+In this case, we have to use `lda` with `ses` being the "response" variable
+
+```{r}
+hsb.1 = lda(ses~read+write+math+science+socst, data=hsb)
+# then we display the results
+hsb.1
+```
+
+## (c) How many linear discriminants do you think are worth looking at? Explain briefly.
+
+There is only one linear discriminant worth looking at, which is LD1.
+
+LD1 is priortized over LD2 because if we look at the "proportion of trace" from (b), LD1 is valued at 0.9373 which is higher than LD2 being valued at 0.0627. This tells us that LD1 is better able to project how groups differ relative to socio-economic status.
+
+## (d) Which *three* of the test scores contribute the most to LD1? Explain briefly
+
+To approach this question, we would have to look at the coefficients of LD1, and pick the three highest absolute coefficients (that is, we change every negative coefficient to a positive coefficient and then pick the top 3). 
+
+In this case, the three test scores that contribute to LD1 are: social studies, science, and writing. I will keep these three in mind as we are going to discuss a bit further in the next question.
+
+Extra: It would be understandable if someone were to have less than three test scores because these coefficients are relatively close to 0. That is, if a coefficient is very close to zero, the test scores would not (if not, barely) matter when differentiating between socio-economic groups relative to the linear discriminant.
+
+## (e) What would make a student have a high score on LD1, based on what you said in the previous part?
+
+Based on my previous part, I said that social studies, science, and writing scores contribute to the most to LD1.
+
+We see that social studies and science has negative coefficients. So, in order to "maximize" the LD1 score, a student would have to score very low on social studies and science tests.
+
+Likewise, we see that writing has a positive coefficient. In order to maximize the LD1 score, a student would also have to score very high on the writing test.
+
+## (f) Obtain "predictions" for your discriminant analysis and make a data frame which is the original data plus the output from the predictions side by side. Display (some of) the results.
+
+We first make predictions
+
+```{r}
+p = predict(hsb.1)
+```
+
+Then we attach the data to our original data frame
+
+```{r}
+hsb.3 = cbind(hsb, p)
+# and display some of the results
+head(hsb.3)
+```
+
+## (g) Plot the LD1 scores against the LD2 scores for each student, colouring each point by which socio-economic status group was from. Do the groups appear to be distinct or not?
+
+This is fairly straight forward:
+
+```{r}
+ggplot(hsb.3, aes(x = x.LD1, y = x.LD2, colour = ses)) +
+  geom_point()
+```
+
+
+If we were to evaluate this based on both LD1 and LD2 scores, it is quite difficult to interpret something. That is, all three socio-economic scores is capable of going in all vertical magnitudes on the plot, which means to say that LD2 does not provide signifiance in discriminanting between groups.
+
+However, we can somewhat differentiate the groups with LD1. That is, if we look at the `high` socio-economic status, it appears that a majority of the frequencies are below a 0 LD1 score. 
+
+Conversely, if we look at the `low` socio-economic status, the majority of frequencies are above a 0 LD1 score.
+
+If we look at the `middle` socio-economic status, the scores appear to be scattered all over the place in the LD1 scale, so it is possible to mistake `middle` with a `high` or `low`.
+
+Extra: A boxplot may be able to help us with our conclusions to focus on specific groups for LD1.
+
+```{r}
+ggplot(hsb.3, aes(x = ses, y = x.LD1)) +
+  geom_boxplot()
+```
+
+As I expected, my conclusions appear okay.
+
+## (h) Create a new variable called `is_correct` in your data frame that is the text `correct` if the predicted SES group is the same as the observed one, and `wrong` if otherwise. Save your new data frame.
+
+Just taking some inspiration from PASIAS...
+
+```{r}
+hsb.4 = hsb.3 %>% mutate(is_correct=ifelse(ses==class, "correct", "wrong"))
+```
+
+Not asked, but let's take a look to confirm what we have is expected
+
+```{r}
+head(select(hsb.4, is_correct, ses, class))
+```
+
+seems okay to me.
+
+## (i) Modify your graph of part (g) to include information about whether each student was correctly classified or not. You can use the shape of each point to encode this.
+
+We look at PASIAS and...
+
+```{r}
+ggplot(hsb.4, aes(x = x.LD1, y = x.LD2, colour = ses, shape = is_correct)) +
+  geom_point()
+```
+
+## (j) For each SES group, where on your graph are the ones that are correctly classified?
+
+From what I am seeing, it appears that the `middle` socio-economic status tends to be correct from -1 to 1 on the LD1 scale, regardless of the LD2 scale.
+
+As for the `high` socio-economic status, we can simply say that `high` tends to be correct from -2.5 to -0.5 on the LD1 scale. However, it appears there are exceptions: 
+
+* if the point on the LD1 scale is in the range from -2.5 to -1, the point is only correct when the LD2 score is approximately below  0.30.
+* if the point on the LD1 scale is in the range from -1 to -0.5, the point is only correct when the LD2 score is approximately below -0.90
+
+As for the `low` socio-economic status, `low` tends to be correct from 1 to 3 on the LD1 scale, however there are certain exceptions as well:
+
+* if the point on the LD1 scale is in the range from 1 to 1.75, the point is only correct when the LD2 score is approximately below -1.6
+* if the point on the LD1 scale is in the range from 1.75 and onward, then it is classified as correct.
+
+## (k) Obtain a table showing how many students were classified into each combination of observed and predicted `ses` category.
+
+We can use `with`
+
+```{r}
+with(hsb.4, table(obs = ses, pred = class))
+```
+
+## (l) Do you think the classification is good or bad? explain briefly.
+
+It's bad.
+
+We can attempt to give credit to the discriminant classification for the middle socio-economic students since it correctly predicted 76 out of the 95 (76 + 7 + 12) actual middle students. 
+
+However, we cannot so sure about that since it mispredicted that 33 out of 58 (21 + 4 + 33) high social economic students for middle students, and 34 out of the 47 (3 + 10 + 34) low social economic students. Keep in mind that these predictions for the middle students were all majorities in each respective social economic group.
+
+For these reasons, I fail to believe that the discriminant analysis can clearly differ between social economic groups since the majority of predictions fall in the middle social economic group.
+
+## (m) Find the overall proportion of students who got misclassified. (Note: you can use your `is_correct` you obtained earlier)
+
+In this case, we want to see the the amount of people that got classified correctly (and incorrectly), and then find the percentage of it
+
+```{r}
+hsb.4 %>% count(is_correct) %>% 
+  mutate(pct=n/sum(n))
+```
+
+So, we find that the discriminant analysis misclassifies students 46.5% of the time, which was somewhat expected given our conclusions from (l). It is correct 53.5% of the time since the vast majority of students (95 out of the 200) are in the middle socio-economic class anyway.
+
+## (n) Find the proportion of students from each (observed) socio-economic group who got misclassified. Does one group seem to be easier to classify than others? Explain briefly
+
+This is going to be a bit of a long process:
+
+```{r}
+hsb.4 %>% group_by(ses) %>%
+  count(is_correct) %>% 
+  mutate(pct = n / sum(n)) %>% 
+  select(ses, is_correct, pct) %>% 
+  spread(is_correct, pct)
+```
+
+Yes, there is one group that is much easier to classify than others, which is `middle`. This is because the discriminant analysis predicts the majority of the points to be in the in the `middle` socio-economic group rather than `high` or `low`. Hence, why `middle` has an incorrect percentage at 20%, and the `high` and `low` incorrect percentage is at 63.8% and 78.7% respectively.
+
+Thus, our conclusions appear to be consistent with what we had in (l) and (m).
