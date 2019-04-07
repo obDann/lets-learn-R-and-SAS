@@ -70,7 +70,10 @@ ggplot(d, aes(x = duration, y = m, colour = weight_gain, group = weight_gain)) +
 
 ## (e) What do you conclude from your interaction plot? Explain briefly
 
-`moderate` and `severe` appear to be parallel, while mild seems to be much more elastic (flatter) than the other two. That is, `moderate` and `severe` will not have an interaction. However, with `mild`, we can expect an interation with `moderate` and/or `severe`, and it would produce a significant effect for `log_days`.
+General rule of thumb: if there is at least one line that does not look (approximately) parallel, there is an interaction. It's a total judgement call.
+
+
+`moderate` and `severe` appear to be parallel, while mild seems to be much more elastic (flatter) than the other two. Due to mild having a distinct slope, we can expect an interaction, and it would produce a significant effect for `log_days`.
 
 ## (f) Run an ANOVA predicting the transformed number of days in the hospital from the weight gain and duration. Include an interaction. From the results, what is the most important conclusion?
 
@@ -98,23 +101,13 @@ We see that both `duration`'s and `weight_gain`'s p-values are less than $\alpha
 
 ## (h) Run a suitable Tukey Analysis. What can you say about the combination of weight gain and duration that is associated with the *smallest* mean number of days in the hospital? Explain briefly. (Use $\alpha = 0.1$ again).
 
-That *smallest* part seems like a huge hint. So we filter only days that have 'short' in them. This is regarded as a simple analysis
+Since the interactions are not significant, it is best to just run a Tukey analysis as is.
 
 ```{r}
-kidney.2 %>% filter(duration=="short") %>%  # note to self: can work with just kidney
-  aov(log_days~weight_gain, data=.) -> simple_short  # note to self: no need to do fct_inorder
-summary(simple_short)
+TukeyHSD(kidney.4)
 ```
 
-We find that there is a small p-value (at 0.000581), and conclude that there is an effect of filter type for short durations.
-
-We conclude that there may be differing means from each category. Thus, it is suitable to conduct a Tukey analysis to see what durations means differ from each other
-
-```{r}
-TukeyHSD(simple_short)
-```
-
-Since we have $\alpha = 0.10$, we find that all combinations' p-value is less than $\alpha$. That is, there is no combination of the weight gain that differs when the duration of stay is short. This is odd, since it contradicts our analysis of variance (may have been a different story if $\alpha = 0.05$).
+At $\alpha = 0.10$, all the differences are significant for both explanatory variables (since all p-values are less than $\alpha$). That is, any combination of `duration` and `weight gain` has a unique allocation of `log_days`.
 
 # Question 4
 
