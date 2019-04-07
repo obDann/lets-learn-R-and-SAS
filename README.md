@@ -54,6 +54,7 @@ All assignments are completed in R. The objectives of each assignment are the fo
    * **Analysis of Variance with interactions**: Provided one quantitative response variable and two or more categorical explanatory variables, determine if there is an interaction between the categorical variables (additional synergy to the response variable's magnitude), and determine if the interaction is significant. Highlights:
      * Interaction plots: If the slopes are (approximately) parallel, then the interaction between variables is not significant. If there is at least one slope that is not parallel to the others, then the interaction is significant
      * Simple effects: Fixate one explanatory varaible as a value, then look at the probabilities, run an ANOVA, and if warranted (p-value is considerably small from the ANOVA), run a Tukey analysis.
+     * Only conduct a simple effect analysis if the interaction is significant. If the interaction is insignificant, it is okay to run a Tukey Analysis as is without the interaction (and other insignificant terms).
    * **Contrasts between groups**: Comparing means between combinations of a specific explanatory variable's values (e.g. you are able to compare 2 explanatory values to 1 explanatory value). Highlights:
      * To set up contrasts, specific hypotheses are required, which later leads to orthogonal vectors based on the hypotheses
      * Conclusions of the hypotheses are conducted based on the p-values of the stated hypotheses
