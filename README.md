@@ -1,10 +1,10 @@
 # Let's learn R and SAS
 
-The purpose of this repository is to learn SAS, R, and fundamental applications of statistics throughout the timeframe of my Applied Statistics education. This repository is expected to be active from September 2018 to April 2019.
+The purpose of this repository is to learn SAS, R, and fundamental applications of statistics throughout the timeframe of my formal Applied Statistics education. This repository is expected to be active from September 2018 to April 2019.
 
 Any R code is written in a ".Rmd" format as opposed to a ".R" format; hence why this repository seems SAS heavy, but it actually is not.
 
-Note that more topics are covered in the courses themselves, and those courses will continue to evolve over time with possibly different libraries/technologies. You can find out more about these topics [here (Applications of Statistical Methods)](https://www.utsc.utoronto.ca/~butler/c32/) and [here (Statistics for Life and Social Sciences)](https://www.utsc.utoronto.ca/~butler/d29/) taught by [Professor Butler](https://github.com/nxskok).
+Note that more topics are covered in the courses themselves (like Principal components, factor analysis, and time-series analysis), and those courses will continue to evolve over time with possibly different libraries/technologies. You can find out more about these topics [here (Applications of Statistical Methods)](https://www.utsc.utoronto.ca/~butler/c32/) and [here (Statistics for Life and Social Sciences)](https://www.utsc.utoronto.ca/~butler/d29/) taught by [Professor Butler](https://github.com/nxskok).
 
 ---
 
@@ -34,7 +34,7 @@ All assignments are completed in R. The objectives of each assignment are the fo
     * Significance between the explanatory variable and the response variable
     * Interpretations of an explanatory variable's coefficient
 * [Assignment 2:](./StatisticsForLifeAndSocialSciences/A2)
-  * **Logistic Regression with multiple explanatory variables**: The response variable has binary values, typically consisting ofg True or False. A general logistic regression enables binary predictions provided that the relationship between the response variable and the explanatory variables are siginficant. Highlights:
+  * **Logistic Regression with multiple explanatory variables**: The response variable has binary values, typically consisting of True or False. A general logistic regression enables binary predictions provided that the relationship between the response variable and the explanatory variables are significant. Highlights:
     * Significance between the response variable and explanatory variables. Insignificant variables are removed through the process of backwards elimination
     * Explanatory variables can be both quantitative and categorical; specific categorical values can be found in the baseline/intercept of the model
     * Coefficient interpretation between explanatory variables and prediction analysis
@@ -47,11 +47,11 @@ All assignments are completed in R. The objectives of each assignment are the fo
     * Interpretations of predictions and probabilities relative to predictions
   * **Survival Analysis (Cox-Proportional Hazards Model)**: Provided many explanatory variables, determine the category that may survive the longest. Highlights:
     * "Survive" is loosely used. The response variable is a quantitative variable that is a measure before inevitability (e.g. death, club resignation etc.)
-    * A definition to highlight is the word *Censored*. *Censored* follows the idea that there is not a definitive measurement for a subject to have the inevibility to occur when the data was recorded
+    * A definition to highlight is the word *Censored*. *Censored* follows the idea that there is not a definitive measurement for a subject to have an inevitable event occur when the data was recorded
     * Predictions typically consist of one main focus group, but with different (categorical) treatments
     * Interpretation of surivival curves
 * [Assignment 4:](./StatisticsForLifeAndSocialSciences/A4)
-   * **Analysis of Variance with interactions**: Provided one quantitative response variable and two or more categorical variables, determine if there is an interaction between the categorical variables (additional synergy to the response variable's magnitude), and determine if the interaction is significant. Highlights:
+   * **Analysis of Variance with interactions**: Provided one quantitative response variable and two or more categorical explanatory variables, determine if there is an interaction between the categorical variables (additional synergy to the response variable's magnitude), and determine if the interaction is significant. Highlights:
      * Interaction plots: If the slopes are (approximately) parallel, then the interaction between variables is not significant. If there is at least one slope that is not parallel to the others, then the interaction is significant
      * Simple effects: Fixate one explanatory varaible as a value, then look at the probabilities, run an ANOVA, and if warranted (p-value is considerably small from the ANOVA), run a Tukey analysis.
    * **Contrasts between groups**: Comparing means between combinations of a specific explanatory variable's values (e.g. you are able to compare 2 explanatory values to 1 explanatory value). Highlights:
@@ -63,7 +63,7 @@ All assignments are completed in R. The objectives of each assignment are the fo
     * Slope interpretation and interaction significance
   * **Multivariate Analysis of Variance (MANOVA)**: As opposed to ANOVA, multivariate analysis analysis considers more than 1 response variable. Determines if each group consistently have the same mean across the response variables. Highlight:
     * Response variables must be quantitative
-  * **Repeated Measures ANOVA**: Anagolous to matched pairs, test whether the mean effects of the response variable is the same over n timeframes/treatments on the same subject. Highlights:
+  * **Repeated Measures ANOVA**: Analogous to matched pairs, test whether the mean effects of the response variable is the same over n timeframes on the same subject, varying on m treatments. Highlights:
     * Interpretation of a spaghetti plot
     * Significance of variables/interaction(s) over the time frame
 * [Assignment 6:](./StatisticsForLifeAndSocialSciences/A6)
