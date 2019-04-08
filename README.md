@@ -49,20 +49,20 @@ All assignments are completed in R. The objectives of each assignment are the fo
     * "Survive" is loosely used. The response variable is a quantitative variable that is a measure before inevitability (e.g. death, club resignation etc.)
     * A definition to highlight is the word *Censored*. *Censored* follows the idea that there is not a definitive measurement for a subject to have an inevitable event occur when the data was recorded
     * Predictions typically consist of one main focus group, but with different (categorical) treatments
-    * Interpretation of surivival curves
+    * Interpretation of survival curves
 * [Assignment 4:](./StatisticsForLifeAndSocialSciences/A4)
    * **Analysis of Variance with interactions**: Provided one quantitative response variable and two or more categorical explanatory variables, determine if there is an interaction between the categorical variables (additional synergy to the response variable's magnitude), and determine if the interaction is significant. Highlights:
      * Interaction plots: If the slopes are (approximately) parallel, then the interaction between variables is not significant. If there is at least one slope that is not parallel to the others, then the interaction is significant
-     * Simple effects: Fixate one explanatory varaible as a value, then look at the probabilities, run an ANOVA, and if warranted (p-value is considerably small from the ANOVA), run a Tukey analysis.
+     * Simple effects: Fixate one explanatory variable as a value, then look at the probabilities, run an ANOVA, and if warranted (p-value is considerably small from the ANOVA), run a Tukey analysis.
      * Only conduct a simple effect analysis if the interaction is significant. If the interaction is insignificant, it is okay to run a Tukey Analysis as is without the interaction (and other insignificant terms).
    * **Contrasts between groups**: Comparing means between combinations of a specific explanatory variable's values (e.g. you are able to compare 2 explanatory values to 1 explanatory value). Highlights:
      * To set up contrasts, specific hypotheses are required, which later leads to orthogonal vectors based on the hypotheses
      * Conclusions of the hypotheses are conducted based on the p-values of the stated hypotheses
 * [Assignment 5:](./StatisticsForLifeAndSocialSciences/A5)
-  * **Analysis of Covariance (ANCOVA)**:  Determines which variables (and interactions between them) are siginficant and which ones are inconsequential to the quantitative response variable. Highlights:
+  * **Analysis of Covariance (ANCOVA)**:  Determines which variables (and interactions between them) are significant and which ones are inconsequential to the quantitative response variable. Highlights:
     * Typically conducted with one quantitative explanatory variable and one categorical explanatory variable
     * Slope interpretation and interaction significance
-  * **Multivariate Analysis of Variance (MANOVA)**: As opposed to ANOVA, multivariate analysis analysis considers more than 1 response variable. Determines if each group consistently have the same mean across the response variables. Highlight:
+  * **Multivariate Analysis of Variance (MANOVA)**: As opposed to ANOVA, multivariate analysis considers more than 1 response variable. Determines if each group consistently have the same mean across the response variables. Highlight:
     * Response variables must be quantitative
   * **Repeated Measures ANOVA**: Analogous to matched pairs, test whether the mean effects of the response variable is the same over n timeframes on the same subject, varying on m treatments. Highlights:
     * Interpretation of a spaghetti plot
@@ -75,7 +75,7 @@ All assignments are completed in R. The objectives of each assignment are the fo
     * Predictions in discriminant analysis and assessment of accuracy/predictions
 * [Assignment 7:](./StatisticsForLifeAndSocialSciences/A7)
   * **Cluster Analysis**: Determine which categorical values are alike based off of distances/dissimilarities (distances and dissimilarities are interchangeable in this context).
-    * Demonstrated is a hierarchial cluster analysis using several methods, visualized through a dendrogram
+    * Demonstrated is a hierarchical cluster analysis using several methods, visualized through a dendrogram
     * All within a Euclidean space:
       * Single-linkage is the distance between 2 clusters of their closest points
       * Complete linkage is the distance between 2 cluster of their furthest points
